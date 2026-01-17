@@ -34,9 +34,9 @@
     "glob": "^10.4.5"
   },
   "devDependencies": {
-    "@types/node": "^20.14.10",
+    "@types/node": "^18.16.0",
     "typescript": "^5.5.3",
-    "vitest": "^4.0.17",
+    "vitest": "^1.6.0",
     "eslint": "^9.6.0"
   },
   "engines": {

@@ -1,6 +1,6 @@
 # Contributing to Never
 
-Thanks for considering a contribution. The project benefits most from two types of additions: new rules that capture real world constraints, and improvements to the sync engines that make output more useful.
+Thanks for considering a contribution. The project benefits most from two types of additions: new rules that capture real-world constraints, and improvements to the sync engines that make output more useful.
 
 ## Adding New Rules
 
@@ -44,7 +44,7 @@ Before submitting a rule, consider:
 
 ## Engine Improvements
 
-The sync engines in `cli/src/engines/` convert parsed rules to tool specific formats. If you are adding support for a new AI tool, create a new engine file following the existing patterns:
+The sync engines in `cli/src/engines/` convert parsed rules to tool-specific formats. If you are adding support for a new AI tool, create a new engine file following the existing patterns:
 
 1. Export a function that takes `ParsedRule[]` and returns formatted content
 2. Handle the tool's specific format requirements

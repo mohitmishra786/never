@@ -93,7 +93,7 @@ The parser also extracts individual rules from the content. It scans for lines s
 
 ## Project Detection
 
-The detector examines the working directory for telltale files. Each check is independent and non destructive, just filesystem reads with graceful fallbacks if files are missing or malformed.
+The detector examines the working directory for telltale files. Each check is independent and non-destructive—just filesystem reads with graceful fallbacks if files are missing or malformed.
 
 ```mermaid
 flowchart TD
@@ -172,7 +172,7 @@ flowchart LR
     style Claude fill:#0f3460,stroke:#5a5a7a,color:#fff
 ```
 
-The Claude and AGENTS engines use marker comments to preserve manual edits. When updating an existing file, they find the markers, replace only the content between them, and leave everything else untouched. This allows teams to add project specific guidance that survives regeneration.
+The Claude and AGENTS engines use marker comments to preserve manual edits. When updating an existing file, they find the markers, replace only the content between them, and leave everything else untouched. This allows teams to add project-specific guidance that survives regeneration.
 
 ## Configuration Flow
 

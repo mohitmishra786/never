@@ -37,4 +37,5 @@ program
     .option('-a, --all', 'Show all rules including disabled ones')
     .action(listCommand);
 
-program.parse();
+// Use parseAsync to properly await async command handlers
+await program.parseAsync();

@@ -65,6 +65,35 @@ ${NEVER_SECTION_END}
 }
 
 /**
+ * Replace content between markers using indexOf for robust handling.
+ * Validates marker positions to handle edge cases properly.
+ */
+function replaceMarkerSection(
+    existingContent: string,
+    rulesContent: string,
+    startMarker: string,
+    endMarker: string
+): string | null {
+    const startIndex = existingContent.indexOf(startMarker);
+    const endIndex = existingContent.indexOf(endMarker);
+
+    // Validate marker positions
+    if (startIndex < 0 || endIndex < 0 || endIndex <= startIndex) {
+        return null;
+    }
+
+    const beforeMarker = existingContent.slice(0, startIndex);
+    const afterMarker = existingContent.slice(endIndex + endMarker.length);
+
+    return `${beforeMarker}${startMarker}
+
+# Constraints
+
+${rulesContent}
+${endMarker}${afterMarker}`;
+}
+
+/**
  * Update existing CLAUDE.md or create new one
  */
 export function updateClaudeFile(
@@ -80,18 +109,16 @@ export function updateClaudeFile(
         // Read existing file
         const existingContent = readFileSync(claudePath, 'utf-8');
 
-        // Check if it has our markers
-        if (existingContent.includes(NEVER_SECTION_START) && existingContent.includes(NEVER_SECTION_END)) {
-            // Replace the section between markers
-            const beforeMarker = existingContent.split(NEVER_SECTION_START)[0];
-            const afterMarker = existingContent.split(NEVER_SECTION_END)[1] || '';
+        // Try to replace the section between markers
+        const replaced = replaceMarkerSection(
+            existingContent,
+            rulesContent,
+            NEVER_SECTION_START,
+            NEVER_SECTION_END
+        );
 
-            finalContent = `${beforeMarker}${NEVER_SECTION_START}
-
-# Constraints
-
-${rulesContent}
-${NEVER_SECTION_END}${afterMarker}`;
+        if (replaced !== null) {
+            finalContent = replaced;
         } else {
             // Append our section to the end
             finalContent = `${existingContent.trim()}

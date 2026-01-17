@@ -3,7 +3,8 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import YAML from 'yaml';
 
 export interface NeverConfig {
@@ -81,13 +82,22 @@ export function createDefaultConfig(rules: string[]): NeverConfig {
     };
 }
 
+/**
+ * Get the library path relative to this module.
+ * Uses fileURLToPath for cross-platform compatibility.
+ */
 export function getLibraryPath(): string {
-    // First check if we're running from the never repo itself
+    // Use fileURLToPath for proper cross-platform path handling
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
     const possiblePaths = [
-        // Local development
-        new URL('../../library', import.meta.url).pathname,
-        // Linked globally
-        new URL('../../../library', import.meta.url).pathname,
+        // Local development (from dist/utils/)
+        join(__dirname, '..', '..', 'library'),
+        // From dist/commands/ when called from there
+        join(__dirname, '..', '..', '..', 'library'),
+        // Local library in current project
+        join(process.cwd(), 'library'),
     ];
 
     for (const p of possiblePaths) {

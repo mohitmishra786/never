@@ -43,7 +43,7 @@ describe('to-mdc engine', () => {
         expect(result.filename).toBe('test.mdc');
         expect(result.content).toContain('---');
         expect(result.content).toContain('description: Rules for testing');
-        expect(result.content).toContain('globs: **/*.ts');
+        expect(result.content).toContain('globs: "**/*.ts"');
         expect(result.content).toContain('alwaysApply: false');
     });
 
@@ -104,5 +104,10 @@ describe('to-agents engine', () => {
 
         const lines = content.split('\n').filter(l => l.startsWith('- Never'));
         expect(lines).toHaveLength(3);
+    });
+
+    it('handles empty rules array', () => {
+        const content = generateAgentsContent([]);
+        expect(content).toBe('');
     });
 });

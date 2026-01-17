@@ -5,9 +5,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'os';
 import { detectProject, suggestRuleSets } from '../src/utils/detect.js';
 
-const testDir = '/tmp/never-detect-test';
+// Use cross-platform temp directory
+const testDir = join(tmpdir(), 'never-detect-test');
 
 describe('detectProject', () => {
     beforeEach(() => {
