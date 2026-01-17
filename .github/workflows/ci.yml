@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install dependencies
+        working-directory: cli
+        run: npm ci
+
+      - name: Build TypeScript
+        working-directory: cli
+        run: npm run build
+
+      - name: Run unit tests
+        working-directory: cli
+        run: npm test
+
+      - name: Test CLI commands
+        working-directory: cli
+        run: |
+          # Link the CLI globally
+          npm link
+          
+          # Create a test project
+          mkdir -p /tmp/test-project
+          cd /tmp/test-project
+          echo '{}' > package.json
+          echo '{}' > tsconfig.json
+          
+          # Test init command
+          never init
+          test -f .never/config.yaml || exit 1
+          
+          # Test sync command
+          never sync --verbose
+          test -f CLAUDE.md || exit 1
+          test -f AGENTS.md || exit 1
+          test -d .cursor/rules || exit 1
+          
+          # Test list command
+          never list --all
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install dependencies
+        working-directory: cli
+        run: npm ci
+
+      - name: Check TypeScript compilation
+        working-directory: cli
+        run: npm run build
