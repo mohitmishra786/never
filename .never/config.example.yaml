@@ -1,0 +1,27 @@
+# Never CLI Configuration
+# https://github.com/mohitmishra786/never
+
+version: 1
+
+# Rule sets to include
+# Available: core, typescript, python, react
+rules:
+  - core           # Core rules: safety, code quality, tone, workflow
+  - typescript     # TypeScript-specific rules (enable if using TypeScript)
+  # - python       # Python-specific rules
+  # - react        # React-specific rules
+
+# Output targets - which agent files to generate
+targets:
+  cursor: true     # Generate .cursor/rules/*.mdc files
+  claude: true     # Generate/update CLAUDE.md
+  agents: true     # Generate AGENTS.md (universal format)
+  # windsurf: true # Generate .windsurf/rules/ (coming soon)
+
+# Smart detection
+# When enabled, CLI will auto-detect project type and include relevant rules
+autoDetect: true
+
+# Custom rules directory (optional)
+# Add your own project-specific rules
+# customRules: ./my-never-rules
