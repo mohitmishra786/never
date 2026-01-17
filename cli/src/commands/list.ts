@@ -4,33 +4,12 @@
  */
 
 import { existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { loadConfig } from '../utils/config.js';
+import { join } from 'path';
+import { loadConfig, getLibraryPath } from '../utils/config.js';
 import { loadAllRuleSets } from '../engines/parser.js';
 
 interface ListOptions {
     all?: boolean;
-}
-
-// Get the library path relative to this module
-function getLibraryPath(): string {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-
-    const possiblePaths = [
-        join(__dirname, '..', '..', '..', 'library'),
-        join(__dirname, '..', '..', 'library'),
-        join(process.cwd(), 'library'),
-    ];
-
-    for (const p of possiblePaths) {
-        if (existsSync(p)) {
-            return p;
-        }
-    }
-
-    return possiblePaths[0];
 }
 
 export async function listCommand(options: ListOptions): Promise<void> {
@@ -57,7 +36,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
 
     // Display rule sets
     for (const [name, ruleSet] of allRuleSets) {
-        const isEnabled = enabledRules.includes(name) || enabledRules.includes('core') && name === 'core';
+        const isEnabled = enabledRules.includes(name);
         const status = isEnabled ? '[ENABLED]' : '[disabled]';
 
         if (!showAll && !isEnabled) {

@@ -32,7 +32,7 @@ alwaysApply: false
 
 - Never lift state higher than necessary; keep it close to where it's used
 - Never store derived state; compute it during render
-- Never use useReducer for simple state that doesn't have complex transitions
+- Never use useReducer for simple state; avoid it for trivial state unless testing or action semantics are needed
 - Never pass too many props through components; consider context or composition
 
 ## Performance

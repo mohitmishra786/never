@@ -101,5 +101,13 @@ export function suggestRuleSets(info: ProjectInfo): string[] {
         rules.push('react');
     }
 
+    // TODO: Add Vue and Angular rule sets when library files are available
+    // if (info.hasVue) {
+    //     rules.push('vue');
+    // }
+    // if (info.hasAngular) {
+    //     rules.push('angular');
+    // }
+
     return rules;
 }

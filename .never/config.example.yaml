@@ -4,12 +4,16 @@
 version: 1
 
 # Rule sets to include
-# Available: core, typescript, python, react
+# Available rule sets:
+# - core:       Essential constraints (safety, code quality, tone, workflow)
+# - typescript: TypeScript-specific best practices
+# - python:     Python-specific best practices
+# - react:      React-specific best practices
 rules:
-  - core           # Core rules: safety, code quality, tone, workflow
-  - typescript     # TypeScript-specific rules (enable if using TypeScript)
-  # - python       # Python-specific rules
-  # - react        # React-specific rules
+  - core
+  - typescript
+  # - python
+  # - react
 
 # Output targets - which agent files to generate
 targets:

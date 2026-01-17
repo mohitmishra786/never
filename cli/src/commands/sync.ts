@@ -4,11 +4,10 @@
  */
 
 import { existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { loadConfig, type NeverConfig } from '../utils/config.js';
+import { join } from 'path';
+import { loadConfig, getLibraryPath, type NeverConfig } from '../utils/config.js';
 import { detectProject, suggestRuleSets } from '../utils/detect.js';
-import { loadAllRuleSets, getRulesForSets, type ParsedRule } from '../engines/parser.js';
+import { loadAllRuleSets, getRulesForSets } from '../engines/parser.js';
 import { rulesToMdc, writeMdcFiles } from '../engines/to-mdc.js';
 import { updateClaudeFile } from '../engines/to-claude.js';
 import { updateAgentsFile } from '../engines/to-agents.js';
@@ -17,28 +16,6 @@ interface SyncOptions {
     config?: string;
     verbose?: boolean;
     dryRun?: boolean;
-}
-
-// Get the library path relative to this module
-function getLibraryPath(): string {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-
-    // Try different paths depending on how the CLI is run
-    const possiblePaths = [
-        join(__dirname, '..', '..', '..', 'library'),  // From dist/commands/
-        join(__dirname, '..', '..', 'library'),         // Alternative structure
-        join(process.cwd(), 'library'),                  // Local library in current project
-    ];
-
-    for (const p of possiblePaths) {
-        if (existsSync(p)) {
-            return p;
-        }
-    }
-
-    // Default to the first path
-    return possiblePaths[0];
 }
 
 export async function syncCommand(options: SyncOptions): Promise<void> {

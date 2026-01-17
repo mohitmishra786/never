@@ -36,7 +36,7 @@ The `.mdc` format is particularly clever. Instead of one massive rules file that
 
 The library ships with over 100 rules across seven categories. These are not arbitrary preferences, they are the constraints that actually matter when AI writes code.
 
-**Security** is non negotiable. No hardcoded secrets. No disabled SSL. No `eval()` with user input. These are the rules that prevent your AI from shipping vulnerabilities to production.
+**Security** is non-negotiable. No hardcoded secrets. No disabled SSL. No `eval()` with user input. These are the rules that prevent your AI from shipping vulnerabilities to production.
 
 **Code Quality** keeps the output maintainable. No magic numbers. No functions over 50 lines. No inventing APIs that do not exist. That last one matters more than you might think, AI assistants have a remarkable talent for hallucinating plausible looking but entirely fictional library methods.
 
@@ -44,7 +44,7 @@ The library ships with over 100 rules across seven categories. These are not arb
 
 **Workflow** covers the meta level. No generating destructive shell scripts without safeguards. No adding deprecated dependencies. No assuming everyone runs macOS.
 
-Then there are language specific rules for TypeScript, Python, and React. These catch the patterns that cause real problems: using `any` in TypeScript, mutable default arguments in Python, class components in modern React.
+Then there are language-specific rules for TypeScript, Python, and React. These catch the patterns that cause real problems: using `any` in TypeScript, mutable default arguments in Python, class components in modern React.
 
 ## Philosophy
 
@@ -68,7 +68,7 @@ The sync engines are intentionally simple. They take parsed rules in, they write
 
 The current release handles the common cases, TypeScript projects, Python projects, React frontends. But the real power of Never comes from the community. Every team has constraints they have learned the hard way. Every codebase has patterns that should never appear again.
 
-The library is designed for contribution. Add a `rust.md` to `library/languages/`. Add a `tailwind.md` to `library/web/`. The CLI will pick them up automatically. Your hard won knowledge becomes everyone's protection.
+The library is designed for contribution. Add a `rust.md` to `library/languages/`. Add a `tailwind.md` to `library/web/`. The CLI will pick them up automatically. Your hard-won knowledge becomes everyone's protection.
 
 *"We are what we repeatedly do. Excellence, then, is not an act, but a habit."* — Aristotle
 

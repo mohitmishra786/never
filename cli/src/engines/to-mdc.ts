@@ -5,6 +5,7 @@
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import YAML from 'yaml';
 import type { ParsedRule } from './parser.js';
 
 export interface MdcOutput {
@@ -13,19 +14,34 @@ export interface MdcOutput {
 }
 
 /**
+ * Safely serialize frontmatter values for YAML
+ */
+function serializeFrontmatter(frontmatter: {
+    description: string;
+    globs: string;
+    alwaysApply: boolean;
+}): string {
+    // Use YAML library to properly escape values
+    const yamlContent = YAML.stringify(frontmatter, {
+        indent: 2,
+        lineWidth: 0,
+    }).trim();
+
+    return `---\n${yamlContent}\n---`;
+}
+
+/**
  * Convert a single rule to Cursor .mdc format
  */
 export function ruleToMdc(rule: ParsedRule): MdcOutput {
     const { frontmatter, content, filename } = rule;
 
-    // Create the .mdc frontmatter
-    const mdcFrontmatter = [
-        '---',
-        `description: ${frontmatter.description}`,
-        `globs: ${frontmatter.globs}`,
-        `alwaysApply: ${frontmatter.alwaysApply}`,
-        '---',
-    ].join('\n');
+    // Create the .mdc frontmatter with proper YAML escaping
+    const mdcFrontmatter = serializeFrontmatter({
+        description: frontmatter.description,
+        globs: frontmatter.globs,
+        alwaysApply: frontmatter.alwaysApply,
+    });
 
     // Combine frontmatter with content
     const mdcContent = `${mdcFrontmatter}\n\n${content.trim()}\n`;
@@ -41,19 +57,6 @@ export function ruleToMdc(rule: ParsedRule): MdcOutput {
  */
 export function rulesToMdc(rules: ParsedRule[]): MdcOutput[] {
     return rules.map(rule => ruleToMdc(rule));
-}
-
-/**
- * Generate granular .mdc files - one per major rule category
- */
-export function generateGranularMdc(rules: ParsedRule[]): MdcOutput[] {
-    const outputs: MdcOutput[] = [];
-
-    for (const rule of rules) {
-        outputs.push(ruleToMdc(rule));
-    }
-
-    return outputs;
 }
 
 /**
@@ -102,16 +105,15 @@ export function createCombinedMdc(
         combinedContent += `\n${rule.content.trim()}\n`;
     }
 
-    // Determine the most appropriate glob pattern
-    const globs = rules[0]?.frontmatter.globs || '**/*';
+    // Collect unique glob patterns from all rules
+    const uniqueGlobs = [...new Set(rules.map(r => r.frontmatter.globs).filter(Boolean))];
+    const globs = uniqueGlobs.length > 0 ? uniqueGlobs.join(',') : '**/*';
 
-    const mdcFrontmatter = [
-        '---',
-        `description: ${description}`,
-        `globs: ${globs}`,
-        'alwaysApply: true',
-        '---',
-    ].join('\n');
+    const mdcFrontmatter = serializeFrontmatter({
+        description,
+        globs,
+        alwaysApply: true,
+    });
 
     return {
         filename: `${categoryName}.mdc`,
