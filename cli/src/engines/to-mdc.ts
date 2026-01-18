@@ -11,7 +11,20 @@ import type { ParsedRule } from './parser.js';
 export interface MdcOutput {
     filename: string;
     content: string;
+    category?: string;
 }
+
+/**
+ * Category mappings for generating never-{category}.mdc files
+ */
+const CATEGORY_MAP: Record<string, { name: string; tags: string[]; globs: string }> = {
+    typescript: { name: 'TypeScript', tags: ['typescript', 'javascript', 'node'], globs: '**/*.{ts,tsx,js,jsx}' },
+    security: { name: 'Security', tags: ['security', 'secrets'], globs: '**/*' },
+    react: { name: 'React', tags: ['react', 'frontend'], globs: '**/*.{tsx,jsx}' },
+    python: { name: 'Python', tags: ['python'], globs: '**/*.py' },
+    core: { name: 'Core', tags: ['core', 'general'], globs: '**/*' },
+    testing: { name: 'Testing', tags: ['testing', 'test'], globs: '**/*.{test,spec}.{ts,tsx,js,jsx}' },
+};
 
 /**
  * Safely serialize frontmatter values for YAML
@@ -118,5 +131,86 @@ export function createCombinedMdc(
     return {
         filename: `${categoryName}.mdc`,
         content: `${mdcFrontmatter}\n${combinedContent}`,
+        category: categoryName,
     };
 }
+
+/**
+ * Generate category-specific .mdc files (never-ts.mdc, never-security.mdc, etc.)
+ */
+export function generateCategoryMdcFiles(rules: ParsedRule[]): MdcOutput[] {
+    const outputs: MdcOutput[] = [];
+    const categorizedRules = new Map<string, ParsedRule[]>();
+
+    // Group rules by matching category
+    for (const rule of rules) {
+        const tags = rule.frontmatter.tags || [];
+        const ruleCategory = rule.id.split('/')[0]; // e.g., "core/safety" -> "core"
+
+        // Check which categories this rule belongs to
+        for (const [category, config] of Object.entries(CATEGORY_MAP)) {
+            const matchesTags = config.tags.some(tag =>
+                tags.includes(tag) || ruleCategory.includes(tag)
+            );
+
+            if (matchesTags || category === ruleCategory) {
+                if (!categorizedRules.has(category)) {
+                    categorizedRules.set(category, []);
+                }
+                categorizedRules.get(category)!.push(rule);
+            }
+        }
+    }
+
+    // Generate .mdc file for each category
+    for (const [category, categoryRules] of categorizedRules) {
+        if (categoryRules.length === 0) continue;
+
+        const config = CATEGORY_MAP[category];
+        if (!config) continue;
+
+        // Collect all individual rules from the parsed rules
+        const allRuleTexts: string[] = [];
+        for (const rule of categoryRules) {
+            for (const ruleText of rule.rules) {
+                allRuleTexts.push(`- ${ruleText}`);
+            }
+        }
+
+        const content = `# Never - ${config.name} Rules
+
+These constraints are automatically synced by [Never CLI](https://github.com/mohitmishra786/never).
+
+## Constraints
+
+${allRuleTexts.join('\n')}
+`;
+
+        const mdcFrontmatter = serializeFrontmatter({
+            description: `Never constraints for ${config.name}`,
+            globs: config.globs,
+            alwaysApply: false,
+        });
+
+        outputs.push({
+            filename: `never-${category}.mdc`,
+            content: `${mdcFrontmatter}\n\n${content}`,
+            category,
+        });
+    }
+
+    return outputs;
+}
+
+/**
+ * Write category-specific .mdc files to .cursor/rules/
+ */
+export function writeCategoryMdcFiles(
+    projectPath: string,
+    rules: ParsedRule[],
+    dryRun: boolean = false
+): string[] {
+    const outputs = generateCategoryMdcFiles(rules);
+    return writeMdcFiles(projectPath, outputs, dryRun);
+}
+
