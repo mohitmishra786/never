@@ -116,7 +116,7 @@ export function loadRulesFromLibrary(libraryPath: string): ParsedRule[] {
                 }
             } else if (stat.isDirectory()) {
                 // Preserve the top-level category for nested folders
-                walkDirectory(fullPath, category || dirName);
+                walkDirectory(fullPath, category || entry);
             }
         }
     };
@@ -245,7 +245,7 @@ export class SyncEngine {
 
         // Check marker status
         const markerStatus = this.checkMarkers(claudePath);
-        
+
         // If file exists but lacks markers, indicate that user needs to be prompted
         // This will be handled by the CLI or VS Code extension
         if (markerStatus.needsPrompt && !options.dryRun) {
@@ -265,7 +265,7 @@ export class SyncEngine {
                 ruleTexts
             );
             skipped = skippedRules.length;
-            
+
             // Filter rules to only include safe ones
             const safeRuleSet = new Set(safe);
             filteredRules = rules.map(r => ({
@@ -305,7 +305,7 @@ export class SyncEngine {
 
         // Check marker status
         const markerStatus = this.checkMarkers(agentsPath);
-        
+
         // If file exists but lacks markers, warn or auto-append
         if (markerStatus.needsPrompt && !options.dryRun) {
             if (options.verbose) {
