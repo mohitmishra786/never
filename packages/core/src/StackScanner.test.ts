@@ -95,7 +95,9 @@ describe('StackScanner', () => {
         it('should detect CI/CD setup', () => {
             mkdirSync(join(testDir, '.github', 'workflows'), { recursive: true });
             writeFileSync(join(testDir, '.github', 'workflows', 'ci.yml'), 'name: CI');
-            const result = detectProject(testDir);
+            
+            // Disable cache to ensure fresh detection
+            const result = detectProject(testDir, { maxDepth: 5, useCache: false });
             
             expect(result.hasCI).toBe(true);
         });

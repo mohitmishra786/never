@@ -21,6 +21,7 @@
         "gray-matter": "^4.0.3",
         "ignore": "^6.0.2",
         "minimatch": "^10.0.1",
+        "safe-regex2": "^5.0.0",
         "yaml": "^2.6.1",
         "zod": "^3.23.8"
     },
@@ -30,7 +31,7 @@
         "vitest": "^1.6.1"
     },
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=18.17.0"
     },
     "repository": {
         "type": "git",

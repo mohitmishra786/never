@@ -8,6 +8,7 @@ import { join, basename } from 'path';
 import { z } from 'zod';
 import YAML from 'yaml';
 import matter from 'gray-matter';
+import { minimatch } from 'minimatch';
 
 /**
  * Priority levels for rules (1 = highest priority)
@@ -239,7 +240,7 @@ export class RuleRegistry {
     }
 
     /**
-     * Validate regex pattern for safety (basic ReDoS protection)
+     * Validate regex pattern for safety (ReDoS protection with safe-regex2)
      */
     private isRegexSafe(pattern: string): boolean {
         // Reject patterns that are too long
@@ -247,16 +248,28 @@ export class RuleRegistry {
             return false;
         }
         
-        // Reject patterns with excessive nesting or repetition
-        const dangerousPatterns = [
-            /(\(.*\+.*\)){3,}/, // Nested repetitions
-            /(\*|\+|\{[0-9,]+\}){3,}/, // Multiple consecutive quantifiers
-            /(.+\|.+){5,}/, // Excessive alternations
-        ];
-        
-        for (const dangerous of dangerousPatterns) {
-            if (dangerous.test(pattern)) {
+        // Try to use safe-regex2 if available, otherwise fall back to basic checks
+        try {
+            // Dynamic import for optional dependency
+            const safeRegex = require('safe-regex2');
+            const isSafe = typeof safeRegex === 'function' ? safeRegex : safeRegex.default;
+            
+            // Check with safe-regex2 (limit defaults to 25 repetitions)
+            if (!isSafe(pattern, { limit: 25 })) {
                 return false;
+            }
+        } catch (error) {
+            // safe-regex2 not available or errored, use fallback basic checks
+            const dangerousPatterns = [
+                /(\(.*\+.*\)){3,}/, // Nested repetitions
+                /(\*|\+|\{[0-9,]+\}){3,}/, // Multiple consecutive quantifiers
+                /(.+\|.+){5,}/, // Excessive alternations
+            ];
+            
+            for (const dangerous of dangerousPatterns) {
+                if (dangerous.test(pattern)) {
+                    return false;
+                }
             }
         }
         

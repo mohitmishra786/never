@@ -4,7 +4,15 @@ Thanks for considering a contribution. The project benefits most from two types 
 
 ## Adding New Rules
 
-The library lives in `library/`. Each markdown file follows a specific format that the parser understands.
+The rule library lives in `library/`. To add new rules:
+
+1. Choose the appropriate category directory:
+   - `library/core/` - Universal rules that apply to all projects
+   - `library/languages/` - Language-specific rules (TypeScript, Python, etc.)
+   - `library/web/` - Web framework rules (React, Vue, etc.)
+   - `library/security/` - Security-focused constraints
+
+2. Create a new `.md` file with frontmatter and Never statements:
 
 ```markdown
 ---
@@ -23,6 +31,19 @@ alwaysApply: false
 - Never do the thing that causes problems
 - Never do the other thing that causes different problems
 ```
+
+3. Test your rules locally:
+```bash
+# From repository root
+npm run build
+
+# Test with a project
+cd /path/to/test/project
+never init
+never sync
+```
+
+4. Submit a pull request with your new rules
 
 ### Frontmatter Fields
 
@@ -59,7 +80,7 @@ Before submitting a rule, consider:
 
 ## Engine Improvements
 
-The sync engines in `cli/src/engines/` convert parsed rules to tool-specific formats. If you are adding support for a new AI tool, create a new engine file following the existing patterns:
+The sync engines in `packages/core/src/` convert parsed rules to tool-specific formats. If you are adding support for a new AI tool, create a new engine file following the existing patterns:
 
 1. Export a function that takes `ParsedRule[]` and returns formatted content
 2. Handle the tool's specific format requirements
@@ -68,19 +89,15 @@ The sync engines in `cli/src/engines/` convert parsed rules to tool-specific for
 
 ### Using the SyncEngine Class
 
-For complex integrations, you can use the `SyncEngine` class in `cli/src/engines/SyncEngine.ts`:
+For complex integrations, you can use the `SyncEngine` class in `packages/core/src/SyncEngine.ts`:
 
 ```typescript
-import { SyncEngine } from './engines/SyncEngine.js';
+import { SyncEngine, getLibraryPath } from '@mohitmishra7/never-core';
 
-const engine = new SyncEngine({
-    projectPath: '/path/to/project',
-    dryRun: false,
-    verbose: true,
-});
+const engine = new SyncEngine('/path/to/project', getLibraryPath());
 
-const summary = engine.syncAll();
-console.log(`Generated ${summary.results.length} files`);
+const results = engine.syncAll({ dryRun: false, verbose: true });
+console.log(`Generated ${results.length} files`);
 ```
 
 ## Pull Request Process
