@@ -8,6 +8,7 @@ import { join, basename } from 'path';
 import { z } from 'zod';
 import YAML from 'yaml';
 import matter from 'gray-matter';
+import { minimatch } from 'minimatch';
 
 /**
  * Priority levels for rules (1 = highest priority)
@@ -239,7 +240,7 @@ export class RuleRegistry {
     }
 
     /**
-     * Validate regex pattern for safety (ReDoS protection using safe-regex2)
+     * Validate regex pattern for safety (ReDoS protection with safe-regex2)
      */
     private isRegexSafe(pattern: string): boolean {
         // Reject patterns that are too long
@@ -247,9 +248,9 @@ export class RuleRegistry {
             return false;
         }
         
-        // Use safe-regex2 for comprehensive ReDoS detection
+        // Try to use safe-regex2 if available, otherwise fall back to basic checks
         try {
-            // Dynamic require to handle both ESM and CommonJS
+            // Dynamic import for optional dependency
             const safeRegex = require('safe-regex2');
             const isSafe = typeof safeRegex === 'function' ? safeRegex : safeRegex.default;
             
@@ -258,7 +259,7 @@ export class RuleRegistry {
                 return false;
             }
         } catch (error) {
-            // If safe-regex2 is not available, fall back to basic checks
+            // safe-regex2 not available or errored, use fallback basic checks
             const dangerousPatterns = [
                 /(\(.*\+.*\)){3,}/, // Nested repetitions
                 /(\*|\+|\{[0-9,]+\}){3,}/, // Multiple consecutive quantifiers

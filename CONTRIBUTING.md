@@ -80,7 +80,7 @@ Before submitting a rule, consider:
 
 ## Engine Improvements
 
-The sync engines in `cli/src/engines/` convert parsed rules to tool-specific formats. If you are adding support for a new AI tool, create a new engine file following the existing patterns:
+The sync engines in `packages/core/src/` convert parsed rules to tool-specific formats. If you are adding support for a new AI tool, create a new engine file following the existing patterns:
 
 1. Export a function that takes `ParsedRule[]` and returns formatted content
 2. Handle the tool's specific format requirements
@@ -89,19 +89,15 @@ The sync engines in `cli/src/engines/` convert parsed rules to tool-specific for
 
 ### Using the SyncEngine Class
 
-For complex integrations, you can use the `SyncEngine` class in `cli/src/engines/SyncEngine.ts`:
+For complex integrations, you can use the `SyncEngine` class in `packages/core/src/SyncEngine.ts`:
 
 ```typescript
-import { SyncEngine } from './engines/SyncEngine.js';
+import { SyncEngine, getLibraryPath } from '@mohitmishra7/never-core';
 
-const engine = new SyncEngine({
-    projectPath: '/path/to/project',
-    dryRun: false,
-    verbose: true,
-});
+const engine = new SyncEngine('/path/to/project', getLibraryPath());
 
-const summary = engine.syncAll();
-console.log(`Generated ${summary.results.length} files`);
+const results = engine.syncAll({ dryRun: false, verbose: true });
+console.log(`Generated ${results.length} files`);
 ```
 
 ## Pull Request Process

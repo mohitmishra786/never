@@ -298,10 +298,21 @@ export class SyncEngine {
     }
 
     /**
-     * Sync rules to AGENTS.md
+     * Sync rules to AGENTS.md with auto-marker feature
      */
     syncToAgents(rules: ParsedRule[], options: SyncOptions = {}): SyncResult {
         const agentsPath = join(this.projectPath, 'AGENTS.md');
+
+        // Check marker status
+        const markerStatus = this.checkMarkers(agentsPath);
+        
+        // If file exists but lacks markers, warn or auto-append
+        if (markerStatus.needsPrompt && !options.dryRun) {
+            if (options.verbose) {
+                console.warn(`Markers not found in ${agentsPath}. They will be appended.`);
+            }
+        }
+
         const newContent = generateClaudeContent(rules);
 
         if (!options.dryRun) {

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync, statSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync, statSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { SyncEngine, loadRulesFromLibrary } from './SyncEngine.js';
@@ -140,7 +140,7 @@ autoDetect: true
             const backupDir = join(testDir, '.never', 'backups');
             expect(existsSync(backupDir)).toBe(true);
 
-            const backups = require('fs').readdirSync(backupDir);
+            const backups = readdirSync(backupDir);
             expect(backups.length).toBeGreaterThan(0);
             expect(backups.some((f: string) => f.endsWith('.bak'))).toBe(true);
         });
@@ -155,15 +155,10 @@ autoDetect: true
             writeFileSync(testFile, originalContent);
             const originalSize = statSync(testFile).size;
 
-            // Mock a write failure by making the atomicWrite throw
-            const originalAtomicWrite = safetyManager.atomicWrite;
-            let writeAttempted = false;
-
-            // Override atomicWrite to simulate disk full error
-            safetyManager.atomicWrite = function(filePath: string, content: string) {
-                writeAttempted = true;
+            // Mock atomicWrite to simulate disk full error
+            const atomicWriteSpy = vi.spyOn(safetyManager, 'atomicWrite').mockImplementation(() => {
                 throw new Error('ENOSPC: no space left on device');
-            };
+            });
 
             // Attempt safe write (should fail but preserve original)
             try {
@@ -181,10 +176,10 @@ autoDetect: true
             
             expect(currentContent).toBe(originalContent);
             expect(currentSize).toBe(originalSize);
-            expect(writeAttempted).toBe(true);
+            expect(atomicWriteSpy).toHaveBeenCalled();
 
-            // Restore original method
-            safetyManager.atomicWrite = originalAtomicWrite;
+            // Restore for cleanup
+            atomicWriteSpy.mockRestore();
         });
 
         it('should create backup before attempting write', () => {
@@ -218,7 +213,7 @@ autoDetect: true
             expect(result).toBe(newContent);
 
             // Verify no temp files left behind
-            const dirContents = require('fs').readdirSync(testDir);
+            const dirContents = readdirSync(testDir);
             const tempFiles = dirContents.filter((f: string) => f.includes('.tmp') || f.includes('~'));
             expect(tempFiles.length).toBe(0);
         });

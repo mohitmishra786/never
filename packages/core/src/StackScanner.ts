@@ -4,7 +4,7 @@
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
-import { join, relative } from 'path';
+import { join, relative, sep } from 'path';
 
 interface Ignore {
     add(patterns: string | readonly string[]): Ignore;
@@ -52,6 +52,13 @@ export interface DetectOptions {
 // Cache for detection results
 const detectionCache = new Map<string, { result: ProjectInfo; timestamp: number; configHash: string }>();
 const CACHE_TTL = 60000; // 1 minute cache TTL
+
+/**
+ * Clear detection cache - useful for testing
+ */
+export function clearDetectionCache(): void {
+    detectionCache.clear();
+}
 
 export interface StackInfo {
     name: string;
@@ -270,7 +277,10 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
         join(projectPath, 'components'),
     ];
     for (const compPath of componentPaths) {
-        const depth = compPath.split('/').length - projectPath.split('/').length;
+        // Calculate depth using platform-aware path operations
+        const relPath = relative(projectPath, compPath);
+        const depth = relPath.split(sep).length;
+        
         if (depth <= maxDepth && existsSync(compPath) && !shouldIgnore(ig, projectPath, compPath)) {
             info.hasComponents = true;
             if (!info.hasReact && !info.hasVue && !info.hasAngular) {
@@ -288,7 +298,10 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
         join(projectPath, 'spec'),
     ];
     for (const testPath of testPaths) {
-        const depth = testPath.split('/').length - projectPath.split('/').length;
+        // Calculate depth using platform-aware path operations
+        const relPath = relative(projectPath, testPath);
+        const depth = relPath.split(sep).length;
+        
         if (depth <= maxDepth && existsSync(testPath) && !shouldIgnore(ig, projectPath, testPath)) {
             info.hasTests = true;
             info.stacks.push({ name: 'Testing', type: 'tool', ruleCount: 6 });
