@@ -232,6 +232,12 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
                 info.hasReact = true;
                 info.frameworks.push('react');
                 info.stacks.push({ name: 'React', type: 'framework', ruleCount: 18 });
+                
+                // Check for Next.js specifically
+                if (allDeps['next']) {
+                    info.frameworks.push('nextjs');
+                    info.stacks.push({ name: 'Next.js', type: 'framework', ruleCount: 8 });
+                }
             }
 
             // Check for Vue
@@ -246,6 +252,26 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
                 info.hasAngular = true;
                 info.frameworks.push('angular');
                 info.stacks.push({ name: 'Angular', type: 'framework', ruleCount: 10 });
+            }
+
+            // Enhanced: Check for Express/Node backend
+            if (allDeps['express'] || allDeps['fastify'] || allDeps['koa']) {
+                info.frameworks.push('node-backend');
+                info.stacks.push({ name: 'Node.js Backend', type: 'framework', ruleCount: 12 });
+            }
+
+            // Enhanced: Check for database libraries
+            if (allDeps['prisma'] || allDeps['typeorm'] || allDeps['sequelize'] || allDeps['mongoose']) {
+                info.frameworks.push('database');
+                info.stacks.push({ name: 'Database ORM', type: 'tool', ruleCount: 8 });
+            }
+
+            // Enhanced: Check for testing frameworks
+            if (allDeps['jest'] || allDeps['vitest'] || allDeps['mocha'] || allDeps['@playwright/test']) {
+                if (!info.hasTests) {
+                    info.hasTests = true;
+                    info.stacks.push({ name: 'Testing', type: 'tool', ruleCount: 6 });
+                }
             }
         } catch {
             // Ignore parse errors
@@ -313,9 +339,26 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
     }
 
     // Check for Docker (root level files)
-    if (existsSync(join(projectPath, 'Dockerfile')) || existsSync(join(projectPath, 'docker-compose.yml'))) {
+    if (existsSync(join(projectPath, 'Dockerfile')) || 
+        existsSync(join(projectPath, 'docker-compose.yml')) ||
+        existsSync(join(projectPath, 'docker-compose.yaml'))) {
         info.hasDocker = true;
-        info.stacks.push({ name: 'Docker', type: 'tool', ruleCount: 4 });
+        info.stacks.push({ name: 'Docker', type: 'tool', ruleCount: 20 });
+    }
+
+    // Enhanced: Check for Kubernetes
+    if (existsSync(join(projectPath, 'k8s')) || 
+        existsSync(join(projectPath, 'kubernetes')) ||
+        existsSync(join(projectPath, 'deployment.yaml'))) {
+        info.frameworks.push('kubernetes');
+        info.stacks.push({ name: 'Kubernetes', type: 'tool', ruleCount: 8 });
+    }
+
+    // Enhanced: Check for Terraform/IaC
+    if (existsSync(join(projectPath, 'main.tf')) || 
+        existsSync(join(projectPath, 'terraform'))) {
+        info.frameworks.push('terraform');
+        info.stacks.push({ name: 'Infrastructure as Code', type: 'tool', ruleCount: 6 });
     }
 
     // Check for CI/CD (root and near-root level dirs/files)
@@ -365,10 +408,21 @@ export function suggestRuleSets(info: ProjectInfo): string[] {
         rules.push('angular');
     }
 
-    // Add security rules if .env files detected
-    if (info.hasEnvFiles) {
+    // Enhanced: Add security rules when sensitive data is detected
+    if (info.hasEnvFiles || info.frameworks.includes('database')) {
         rules.push('security');
     }
+
+    // Enhanced: Add Docker rules when Docker is detected
+    if (info.hasDocker) {
+        rules.push('docker');
+    }
+
+    // Enhanced: Add AI guidelines (always useful for modern development)
+    rules.push('ai-guidelines');
+
+    // Enhanced: Add code quality rules (always useful)
+    rules.push('code-quality');
 
     return [...new Set(rules)]; // Remove duplicates
 }

@@ -3,9 +3,13 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { homedir } from 'os';
+import { fileURLToPath } from 'url';
 import YAML from 'yaml';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export interface NeverConfig {
     version: number;
@@ -38,11 +42,28 @@ export function loadConfig(projectPath: string): NeverConfig | null {
 
 /**
  * Get library path
+ * Priority: 1. User cache (~/.never/library), 2. Bundled library, 3. fallback
  */
 export function getLibraryPath(bundledPath?: string): string {
+    // Check user cache first (from `never pull`)
     const userLibrary = join(homedir(), '.never', 'library');
     if (existsSync(userLibrary)) {
         return userLibrary;
     }
-    return bundledPath || userLibrary;
+    
+    // Fall back to bundled library (ships with npm package)
+    if (bundledPath && existsSync(bundledPath)) {
+        return bundledPath;
+    }
+    
+    // Try to find bundled library relative to this file
+    // In production: node_modules/@mohitmishra7/never-core/dist/bundled-library
+    const bundledRelative = join(__dirname, 'bundled-library');
+    if (existsSync(bundledRelative)) {
+        return bundledRelative;
+    }
+    
+    // Last resort: return user library path (even if it doesn't exist)
+    // This allows library sync to know where to download files
+    return userLibrary;
 }
