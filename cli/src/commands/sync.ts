@@ -5,17 +5,20 @@
 
 import { existsSync } from 'fs';
 import { join } from 'path';
+import chalk from 'chalk';
 import { loadConfig, getLibraryPath, type NeverConfig } from '../utils/config.js';
-import { detectProject, suggestRuleSets } from '../utils/detect.js';
+import { detectProject, suggestRuleSets, generateStackSummary } from '../utils/detect.js';
 import { loadAllRuleSets, getRulesForSets } from '../engines/parser.js';
-import { rulesToMdc, writeMdcFiles } from '../engines/to-mdc.js';
+import { writeCategoryMdcFiles } from '../engines/to-mdc.js';
 import { updateClaudeFile } from '../engines/to-claude.js';
 import { updateAgentsFile } from '../engines/to-agents.js';
+import { generateSkillFile } from '../engines/to-skill.js';
 
 interface SyncOptions {
     config?: string;
     verbose?: boolean;
     dryRun?: boolean;
+    skill?: boolean;
 }
 
 export async function syncCommand(options: SyncOptions): Promise<void> {
@@ -23,19 +26,20 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     const configPath = options.config || join(projectPath, '.never', 'config.yaml');
     const verbose = options.verbose || false;
     const dryRun = options.dryRun || false;
+    const generateSkill = options.skill || false;
 
     if (dryRun) {
-        console.log('[DRY RUN] No files will be written.\n');
+        console.log(chalk.yellow('[DRY RUN] No files will be written.\n'));
     }
 
-    console.log('Syncing Never rules...\n');
+    console.log(chalk.bold('Syncing Never rules...\n'));
 
     // Load configuration
     let config: NeverConfig;
     if (existsSync(configPath)) {
         const loadedConfig = loadConfig(configPath);
         if (!loadedConfig) {
-            console.error('Failed to load configuration. Run `never init` first.');
+            console.error(chalk.red('Failed to load configuration. Run `never init` first.'));
             process.exit(1);
         }
         config = loadedConfig;
@@ -59,8 +63,8 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     }
 
     // Apply auto-detection if enabled
+    const projectInfo = detectProject(projectPath);
     if (config.autoDetect) {
-        const projectInfo = detectProject(projectPath);
         const detectedRules = suggestRuleSets(projectInfo);
 
         // Merge detected rules with configured rules
@@ -73,6 +77,10 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
         }
     }
 
+    // Display stack summary
+    console.log(chalk.cyan(generateStackSummary(projectInfo)));
+    console.log();
+
     // Load rule library
     const libraryPath = getLibraryPath();
     if (verbose) {
@@ -80,8 +88,7 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     }
 
     if (!existsSync(libraryPath)) {
-        console.error(`Rule library not found at: ${libraryPath}`);
-        console.error('Make sure the Never library is available.');
+        console.error(chalk.red(`Rule library not found at: ${libraryPath}`));
         process.exit(1);
     }
 
@@ -103,18 +110,17 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     // Generate outputs for each enabled target
     const generatedFiles: string[] = [];
 
-    // Cursor .mdc files
+    // Cursor .mdc files (category-specific)
     if (config.targets.cursor) {
-        console.log('Generating Cursor .mdc files...');
-        const mdcOutputs = rulesToMdc(activeRules);
-        const files = writeMdcFiles(projectPath, mdcOutputs, dryRun);
+        console.log(chalk.blue('Generating Cursor .mdc files (by category)...'));
+        const files = writeCategoryMdcFiles(projectPath, activeRules, dryRun);
         generatedFiles.push(...files);
-        console.log(`  Created ${files.length} .mdc files in .cursor/rules/`);
+        console.log(`  Created ${files.length} category .mdc files in .cursor/rules/`);
     }
 
     // CLAUDE.md
     if (config.targets.claude) {
-        console.log('Generating CLAUDE.md...');
+        console.log(chalk.blue('Generating CLAUDE.md...'));
         const claudeResult = updateClaudeFile(projectPath, activeRules, dryRun);
         generatedFiles.push(claudeResult.path);
         console.log(`  Updated: ${claudeResult.path}`);
@@ -122,18 +128,27 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
 
     // AGENTS.md
     if (config.targets.agents) {
-        console.log('Generating AGENTS.md...');
+        console.log(chalk.blue('Generating AGENTS.md...'));
         const agentsResult = updateAgentsFile(projectPath, activeRules, dryRun);
         generatedFiles.push(agentsResult.path);
         console.log(`  Updated: ${agentsResult.path}`);
     }
 
-    console.log(`\nSync complete. Generated ${generatedFiles.length} files.`);
+    // Claude Skills (optional)
+    if (generateSkill) {
+        console.log(chalk.blue('Generating Claude SKILL.md...'));
+        const skillResult = generateSkillFile(projectPath, activeRules, dryRun);
+        generatedFiles.push(skillResult.path);
+        console.log(`  Created: ${skillResult.path}`);
+    }
 
-    if (!dryRun) {
+    console.log(chalk.green(`\n✓ Sync complete. Generated ${generatedFiles.length} files.`));
+
+    if (!dryRun && verbose) {
         console.log('\nGenerated files:');
         for (const file of generatedFiles) {
             console.log(`  - ${file}`);
         }
     }
 }
+

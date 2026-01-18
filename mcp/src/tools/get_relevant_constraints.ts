@@ -1,10 +1,10 @@
 /**
- * get_relevant_constraints tool implementation
- * Returns Never constraints applicable to the files being edited
+ * get_applicable_constraints tool implementation
+ * Returns the top 10 most relevant Never constraints based on file extension and content
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, basename } from 'node:path';
+import { join, dirname, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { minimatch } from 'minimatch';
 import matter from 'gray-matter';
@@ -19,6 +19,7 @@ interface RuleFrontmatter {
     tags: string[];
     globs: string;
     alwaysApply: boolean;
+    priority?: number;
 }
 
 interface ParsedRule {
@@ -27,6 +28,13 @@ interface ParsedRule {
     frontmatter: RuleFrontmatter;
     content: string;
     rules: string[];
+    priority: number;
+}
+
+interface ScoredRule {
+    rule: ParsedRule;
+    ruleText: string;
+    score: number;
 }
 
 const DEFAULT_FRONTMATTER: RuleFrontmatter = {
@@ -35,7 +43,49 @@ const DEFAULT_FRONTMATTER: RuleFrontmatter = {
     tags: [],
     globs: '**/*',
     alwaysApply: true,
+    priority: 3,
 };
+
+/**
+ * Extension to tag mapping for relevance scoring
+ */
+const EXTENSION_TAGS: Record<string, string[]> = {
+    '.ts': ['typescript', 'javascript', 'node'],
+    '.tsx': ['typescript', 'react', 'frontend'],
+    '.js': ['javascript', 'node'],
+    '.jsx': ['javascript', 'react', 'frontend'],
+    '.py': ['python'],
+    '.rs': ['rust'],
+    '.go': ['go'],
+    '.java': ['java'],
+    '.vue': ['vue', 'frontend'],
+    '.svelte': ['svelte', 'frontend'],
+    '.css': ['css', 'frontend'],
+    '.scss': ['css', 'sass', 'frontend'],
+    '.html': ['html', 'frontend'],
+    '.json': ['json', 'config'],
+    '.yaml': ['yaml', 'config'],
+    '.yml': ['yaml', 'config'],
+    '.md': ['markdown', 'docs'],
+    '.sql': ['sql', 'database'],
+    '.sh': ['shell', 'bash'],
+    '.dockerfile': ['docker'],
+    '.env': ['security', 'config'],
+};
+
+/**
+ * Content patterns for relevance scoring
+ */
+const CONTENT_PATTERNS: Array<{ pattern: RegExp; tags: string[] }> = [
+    { pattern: /useState|useEffect|useCallback/i, tags: ['react', 'hooks'] },
+    { pattern: /async|await|Promise/i, tags: ['async'] },
+    { pattern: /class\s+\w+/i, tags: ['oop'] },
+    { pattern: /import.*from/i, tags: ['modules'] },
+    { pattern: /SELECT|INSERT|UPDATE|DELETE/i, tags: ['sql', 'database'] },
+    { pattern: /\.env|process\.env|API_KEY|SECRET/i, tags: ['security', 'secrets'] },
+    { pattern: /test\(|describe\(|it\(|expect\(/i, tags: ['testing'] },
+    { pattern: /console\.(log|error|warn)/i, tags: ['debugging'] },
+];
 
 /**
  * Find the library path relative to where the server is running
@@ -44,7 +94,7 @@ function findLibraryPath(projectPath: string): string | null {
     const possiblePaths = [
         join(projectPath, 'library'),
         join(projectPath, 'node_modules', 'never-cli', 'library'),
-        join(dirname(dirname(__dirname)), 'library'), // Relative to mcp/dist
+        join(dirname(dirname(__dirname)), 'library'),
     ];
 
     for (const p of possiblePaths) {
@@ -73,7 +123,6 @@ function parseRuleFile(filePath: string, ruleSetName: string): ParsedRule | null
             ...data,
         };
 
-        // Extract "Never" rules
         const rules: string[] = [];
         const lines = markdownContent.split('\n');
         for (const line of lines) {
@@ -92,6 +141,7 @@ function parseRuleFile(filePath: string, ruleSetName: string): ParsedRule | null
             frontmatter,
             content: markdownContent,
             rules,
+            priority: frontmatter.priority || 3,
         };
     } catch {
         return null;
@@ -128,50 +178,121 @@ function loadAllRules(libraryPath: string): ParsedRule[] {
 }
 
 /**
- * Check if a rule applies to a given file path
+ * Calculate relevance score for a rule based on file path and content
  */
-function ruleAppliesToFile(rule: ParsedRule, filePath: string): boolean {
+function calculateScore(
+    rule: ParsedRule,
+    filePath: string,
+    fileContent?: string
+): number {
+    let score = 0;
+    const ext = extname(filePath).toLowerCase();
+    const extensionTags = EXTENSION_TAGS[ext] || [];
+    const ruleTags = rule.frontmatter.tags || [];
+
+    // Base priority score (1 = highest priority = highest score)
+    score += (6 - rule.priority) * 10;
+
+    // alwaysApply rules get a boost
     if (rule.frontmatter.alwaysApply) {
-        return true;
+        score += 5;
     }
 
-    const globs = rule.frontmatter.globs;
-    if (!globs || globs === '**/*') {
-        return true;
+    // Extension-based matching
+    for (const tag of extensionTags) {
+        if (ruleTags.includes(tag)) {
+            score += 15;
+        }
     }
 
-    const patterns = globs.split(',').map(g => g.trim());
-    return patterns.some(pattern => minimatch(filePath, pattern));
+    // Glob pattern matching
+    if (rule.frontmatter.globs) {
+        const patterns = rule.frontmatter.globs.split(',').map(g => g.trim());
+        for (const pattern of patterns) {
+            if (minimatch(filePath, pattern)) {
+                score += 20;
+                break;
+            }
+        }
+    }
+
+    // Content-based scoring (if content provided)
+    if (fileContent) {
+        for (const { pattern, tags } of CONTENT_PATTERNS) {
+            if (pattern.test(fileContent)) {
+                for (const tag of tags) {
+                    if (ruleTags.includes(tag)) {
+                        score += 10;
+                    }
+                }
+            }
+        }
+    }
+
+    // Security rules always relevant for .env files
+    if (ext === '.env' && ruleTags.includes('security')) {
+        score += 30;
+    }
+
+    return score;
+}
+
+/**
+ * Get top 10 most relevant rules for a file
+ */
+function getTopRulesForFile(
+    allRules: ParsedRule[],
+    filePath: string,
+    fileContent?: string,
+    limit: number = 10
+): ScoredRule[] {
+    const scoredRules: ScoredRule[] = [];
+
+    for (const rule of allRules) {
+        const score = calculateScore(rule, filePath, fileContent);
+
+        // Expand individual rules from the rule file
+        for (const ruleText of rule.rules) {
+            scoredRules.push({
+                rule,
+                ruleText,
+                score,
+            });
+        }
+    }
+
+    // Sort by score (descending) and take top N
+    return scoredRules
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
 }
 
 /**
  * Format rules as markdown for the AI
  */
-function formatRulesAsMarkdown(rules: ParsedRule[]): string {
-    if (rules.length === 0) {
+function formatRulesAsMarkdown(scoredRules: ScoredRule[]): string {
+    if (scoredRules.length === 0) {
         return 'No specific constraints apply to the current files.';
     }
 
     const sections: string[] = [];
-    sections.push('# Applicable Never Constraints\n');
-    sections.push('The following constraints apply to the files you are editing:\n');
+    sections.push('# Top 10 Applicable Never Constraints\n');
+    sections.push('The following constraints are most relevant to the files you are editing:\n');
 
-    // Group by rule name
-    const grouped = new Map<string, ParsedRule[]>();
-    for (const rule of rules) {
-        const name = rule.frontmatter.name;
+    // Group by category
+    const grouped = new Map<string, ScoredRule[]>();
+    for (const sr of scoredRules) {
+        const name = sr.rule.frontmatter.name;
         if (!grouped.has(name)) {
             grouped.set(name, []);
         }
-        grouped.get(name)!.push(rule);
+        grouped.get(name)!.push(sr);
     }
 
-    for (const [name, groupRules] of grouped) {
+    for (const [name, rules] of grouped) {
         sections.push(`## ${name}\n`);
-        for (const rule of groupRules) {
-            for (const neverRule of rule.rules) {
-                sections.push(`- ${neverRule}`);
-            }
+        for (const sr of rules) {
+            sections.push(`- ${sr.ruleText}`);
         }
         sections.push('');
     }
@@ -180,7 +301,7 @@ function formatRulesAsMarkdown(rules: ParsedRule[]): string {
 }
 
 /**
- * Main tool implementation
+ * Main tool implementation - get_applicable_constraints
  */
 export async function getRelevantConstraints(
     files: string[],
@@ -198,16 +319,35 @@ export async function getRelevantConstraints(
         return 'No rules found in the Never library.';
     }
 
-    // Filter rules based on file patterns
-    const relevantRules = new Set<ParsedRule>();
-
-    for (const file of files) {
-        for (const rule of allRules) {
-            if (ruleAppliesToFile(rule, file)) {
-                relevantRules.add(rule);
-            }
+    // For single file, we can potentially read its content
+    let fileContent: string | undefined;
+    if (files.length === 1 && existsSync(files[0])) {
+        try {
+            fileContent = readFileSync(files[0], 'utf-8');
+        } catch {
+            // Ignore read errors
         }
     }
 
-    return formatRulesAsMarkdown([...relevantRules]);
+    // Get top 10 rules across all files
+    const allScoredRules: ScoredRule[] = [];
+    for (const file of files) {
+        const topRules = getTopRulesForFile(allRules, file, fileContent, 10);
+        allScoredRules.push(...topRules);
+    }
+
+    // Deduplicate and sort by score
+    const uniqueRules = new Map<string, ScoredRule>();
+    for (const sr of allScoredRules) {
+        const key = sr.ruleText;
+        if (!uniqueRules.has(key) || uniqueRules.get(key)!.score < sr.score) {
+            uniqueRules.set(key, sr);
+        }
+    }
+
+    const finalRules = Array.from(uniqueRules.values())
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+
+    return formatRulesAsMarkdown(finalRules);
 }
