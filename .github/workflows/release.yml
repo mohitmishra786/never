@@ -38,6 +38,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
     steps:
       - name: Checkout
@@ -58,20 +60,14 @@ jobs:
       - name: Publish @mohitmishra7/never-core
         working-directory: packages/core
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @mohitmishra7/never-cli
         working-directory: packages/cli
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @mohitmishra7/never-mcp-server
         working-directory: packages/mcp-server
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   create-release:
     needs: publish-npm
