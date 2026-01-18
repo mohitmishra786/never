@@ -3,8 +3,21 @@
  * Scans for tech stacks and recommends appropriate Never rule packs
  */
 
-import { existsSync, readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
+import { join, relative } from 'path';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+
+// Handle both ESM and CommonJS environments
+const require = typeof __filename !== 'undefined' 
+    ? createRequire(__filename) 
+    : createRequire(import.meta.url);
+const ignore = require('ignore') as (options?: any) => Ignore;
+
+interface Ignore {
+    add(patterns: string | readonly string[]): Ignore;
+    ignores(pathname: string): boolean;
+}
 
 export interface ProjectInfo {
     hasTypeScript: boolean;
@@ -30,7 +43,48 @@ export interface StackInfo {
 }
 
 /**
+ * Load .gitignore patterns using the ignore package
+ */
+function loadGitignore(projectPath: string): Ignore {
+    const ig = ignore();
+    
+    // Always ignore common directories
+    ig.add([
+        'node_modules/',
+        '.git/',
+        'dist/',
+        'build/',
+        '.next/',
+        '.cache/',
+        'coverage/',
+        '.turbo/',
+        '.never/backups/',
+    ]);
+
+    const gitignorePath = join(projectPath, '.gitignore');
+    if (existsSync(gitignorePath)) {
+        try {
+            const gitignoreContent = readFileSync(gitignorePath, 'utf-8');
+            ig.add(gitignoreContent);
+        } catch (error) {
+            console.warn('Warning: Could not read .gitignore:', error);
+        }
+    }
+
+    return ig;
+}
+
+/**
+ * Check if a path should be ignored based on .gitignore rules
+ */
+function shouldIgnore(ig: Ignore, projectPath: string, filePath: string): boolean {
+    const relativePath = relative(projectPath, filePath);
+    return ig.ignores(relativePath);
+}
+
+/**
  * Comprehensive project detection with deep inspection
+ * Now respects .gitignore to avoid scanning ignored directories
  */
 export function detectProject(projectPath: string = process.cwd()): ProjectInfo {
     const info: ProjectInfo = {
@@ -49,6 +103,9 @@ export function detectProject(projectPath: string = process.cwd()): ProjectInfo 
         frameworks: [],
         stacks: [],
     };
+
+    // Load .gitignore patterns
+    const ig = loadGitignore(projectPath);
 
     // Check for TypeScript
     if (existsSync(join(projectPath, 'tsconfig.json'))) {
@@ -112,9 +169,11 @@ export function detectProject(projectPath: string = process.cwd()): ProjectInfo 
     }
 
     // Deep Inspection: Check for .env files (Security rules)
+    // Note: .env files are typically not in .gitignore for template purposes
     const envPatterns = ['.env', '.env.local', '.env.development', '.env.production'];
     for (const pattern of envPatterns) {
-        if (existsSync(join(projectPath, pattern))) {
+        const envPath = join(projectPath, pattern);
+        if (existsSync(envPath) && !shouldIgnore(ig, projectPath, envPath)) {
             info.hasEnvFiles = true;
             info.stacks.push({ name: 'Environment Config', type: 'security', ruleCount: 8 });
             break;
@@ -128,7 +187,7 @@ export function detectProject(projectPath: string = process.cwd()): ProjectInfo 
         join(projectPath, 'components'),
     ];
     for (const compPath of componentPaths) {
-        if (existsSync(compPath)) {
+        if (existsSync(compPath) && !shouldIgnore(ig, projectPath, compPath)) {
             info.hasComponents = true;
             if (!info.hasReact && !info.hasVue && !info.hasAngular) {
                 info.stacks.push({ name: 'Frontend Components', type: 'framework', ruleCount: 12 });
@@ -145,7 +204,7 @@ export function detectProject(projectPath: string = process.cwd()): ProjectInfo 
         join(projectPath, 'spec'),
     ];
     for (const testPath of testPaths) {
-        if (existsSync(testPath)) {
+        if (existsSync(testPath) && !shouldIgnore(ig, projectPath, testPath)) {
             info.hasTests = true;
             info.stacks.push({ name: 'Testing', type: 'tool', ruleCount: 6 });
             break;

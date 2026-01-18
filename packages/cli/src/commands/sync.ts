@@ -28,6 +28,7 @@ interface SyncOptions {
     verbose?: boolean;
     dryRun?: boolean;
     skill?: boolean;
+    localOnly?: boolean;
 }
 
 export async function syncCommand(options: SyncOptions): Promise<void> {
@@ -36,9 +37,14 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     const verbose = options.verbose || false;
     const dryRun = options.dryRun || false;
     const generateSkill = options.skill || false;
+    const localOnly = options.localOnly || false;
 
     if (dryRun) {
         console.log(chalk.yellow('[DRY RUN] No files will be written.\n'));
+    }
+
+    if (localOnly) {
+        console.log(chalk.yellow('[LOCAL-ONLY] Skipping remote rule updates.\n'));
     }
 
     console.log(chalk.bold('Syncing Never rules...\n'));
