@@ -1,11 +1,14 @@
 {
-  "name": "never-cli",
+  "name": "@mohitmishra7/never-cli",
   "version": "1.0.0",
   "description": "Universal AI Constraint Engine - Sync 'Never' rules to AI coding agents",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "never": "./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",

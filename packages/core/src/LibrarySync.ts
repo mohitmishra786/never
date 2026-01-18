@@ -43,7 +43,7 @@ export class LibrarySync {
     }
 
     /**
-     * Fetch content from a URL with timeout
+     * Fetch content from a URL with timeout and corporate proxy detection
      */
     private async fetchUrl(url: string): Promise<string | null> {
         const controller = new AbortController();
@@ -51,11 +51,59 @@ export class LibrarySync {
         
         try {
             const response = await fetch(url, { signal: controller.signal });
+            
+            // Check for common corporate proxy/registry errors
             if (!response.ok) {
+                // 401/403 - Authentication issues (Artifactory, Nexus)
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error(
+                        'CORPORATE_REGISTRY_AUTH: Your corporate registry requires authentication. ' +
+                        'Try running with --local-only flag or configure your .npmrc with proper credentials.'
+                    );
+                }
+                
+                // 404 - Resource not found (could be blocked by corporate proxy)
+                if (response.status === 404) {
+                    // Try to detect if it's a corporate proxy issue
+                    const responseText = await response.text().catch(() => '');
+                    if (responseText.includes('artifactory') || 
+                        responseText.includes('nexus') || 
+                        responseText.includes('jfrog') ||
+                        responseText.includes('corporate') ||
+                        responseText.toLowerCase().includes('proxy')) {
+                        throw new Error(
+                            'CORPORATE_PROXY_BLOCK: Your corporate proxy is blocking access to GitHub. ' +
+                            'Try using a VPN or run: never sync --local-only'
+                        );
+                    }
+                }
+                
                 return null;
             }
+            
             return await response.text();
-        } catch {
+        } catch (error) {
+            // Re-throw our custom errors
+            if (error instanceof Error && error.message.startsWith('CORPORATE_')) {
+                throw error;
+            }
+            
+            // Handle abort/timeout
+            if (error instanceof Error && error.name === 'AbortError') {
+                throw new Error(
+                    'NETWORK_TIMEOUT: Request timed out. This could be due to a slow corporate proxy. ' +
+                    'Try running: never sync --local-only'
+                );
+            }
+            
+            // Handle other network errors
+            if (error instanceof TypeError) {
+                throw new Error(
+                    'NETWORK_ERROR: Could not reach GitHub. Check your internet connection or firewall settings. ' +
+                    'If behind a corporate proxy, try: never sync --local-only'
+                );
+            }
+            
             return null;
         } finally {
             clearTimeout(timeout);
@@ -93,9 +141,9 @@ export class LibrarySync {
     }
 
     /**
-     * Pull latest rules from remote repository
+     * Pull latest rules from remote repository with corporate environment handling
      */
-    async pull(): Promise<LibrarySyncResult> {
+    async pull(localOnly: boolean = false): Promise<LibrarySyncResult> {
         this.ensureCacheDir();
 
         const result: LibrarySyncResult = {
@@ -104,9 +152,27 @@ export class LibrarySync {
             errors: [],
         };
 
-        const manifest = await this.fetchManifest();
+        // If local-only mode, skip network fetch
+        if (localOnly) {
+            result.errors.push('Running in local-only mode (skipping remote fetch)');
+            return result;
+        }
+
+        let manifest: RuleManifest | null = null;
+        
+        try {
+            manifest = await this.fetchManifest();
+        } catch (error) {
+            if (error instanceof Error && error.message.startsWith('CORPORATE_')) {
+                // Corporate proxy/registry error - provide helpful message
+                result.errors.push(error.message);
+                return result;
+            }
+            throw error;
+        }
+
         if (!manifest) {
-            result.errors.push('Failed to fetch manifest');
+            result.errors.push('Failed to fetch manifest (no response from server)');
             return result;
         }
 
@@ -145,22 +211,32 @@ export class LibrarySync {
                 mkdirSync(localDir, { recursive: true });
             }
 
-            const content = await this.fetchUrl(url);
+            try {
+                const content = await this.fetchUrl(url);
 
-            if (content) {
-                // Check if file changed
-                const existingContent = existsSync(localPath)
-                    ? readFileSync(localPath, 'utf-8')
-                    : null;
+                if (content) {
+                    // Check if file changed
+                    const existingContent = existsSync(localPath)
+                        ? readFileSync(localPath, 'utf-8')
+                        : null;
 
-                if (existingContent !== content) {
-                    writeFileSync(localPath, content, 'utf-8');
-                    result.updated++;
+                    if (existingContent !== content) {
+                        writeFileSync(localPath, content, 'utf-8');
+                        result.updated++;
+                    } else {
+                        result.cached++;
+                    }
                 } else {
-                    result.cached++;
+                    result.errors.push(`Failed to fetch: ${filePath}`);
                 }
-            } else {
-                result.errors.push(`Failed to fetch: ${filePath}`);
+            } catch (error) {
+                // Handle corporate proxy errors gracefully
+                if (error instanceof Error && error.message.startsWith('CORPORATE_')) {
+                    result.errors.push(error.message);
+                    // Stop trying to fetch more files if we hit a corporate proxy issue
+                    break;
+                }
+                result.errors.push(`Failed to fetch ${filePath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         }
 

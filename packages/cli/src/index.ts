@@ -11,6 +11,7 @@ import { syncCommand } from './commands/sync.js';
 import { listCommand } from './commands/list.js';
 import { scanCommand } from './commands/scan.js';
 import { lintCommand } from './commands/lint.js';
+import { doctorCommand } from './commands/doctor.js';
 
 const program = new Command();
 
@@ -31,6 +32,7 @@ program
     .option('-c, --config <path>', 'Path to config file', '.never/config.yaml')
     .option('-v, --verbose', 'Show detailed output')
     .option('--dry-run', 'Show what would be generated without writing files')
+    .option('--local-only', 'Skip remote rule updates (use cached rules only)')
     .action(syncCommand);
 
 program
@@ -54,6 +56,11 @@ program
     .option('-v, --verbose', 'Show detailed output')
     .option('-c, --config <path>', 'Path to config file', '.never/config.yaml')
     .action(lintCommand);
+
+program
+    .command('doctor')
+    .description('Run health checks and diagnose common issues')
+    .action(doctorCommand);
 
 // Use parseAsync to properly await async command handlers
 await program.parseAsync();

@@ -1,11 +1,14 @@
 {
-    "name": "@never/mcp-server",
+    "name": "@mohitmishra7/never-mcp-server",
     "version": "1.0.0",
     "description": "MCP Server for Never constraint engine - provides get_relevant_constraints tool",
     "type": "module",
     "main": "dist/index.js",
     "bin": {
         "never-mcp": "./dist/index.js"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "scripts": {
         "build": "tsc",
