@@ -24,13 +24,15 @@ export interface RuleManifest {
  */
 export class LibrarySync {
     private cacheDir: string;
-    private repoBaseUrl: string;
+    private repoBaseUrl: string; // Base URL for rule files
+    private manifestUrl: string; // Full URL to the manifest.json
 
     constructor(
-        repoUrl: string = 'https://raw.githubusercontent.com/mohitmishra786/never/main/library'
+        manifestUrl: string = 'https://raw.githubusercontent.com/mohitmishra786/never/main/packages/library/manifest.json'
     ) {
         this.cacheDir = join(homedir(), '.never', 'library');
-        this.repoBaseUrl = repoUrl;
+        this.manifestUrl = manifestUrl;
+        this.repoBaseUrl = dirname(manifestUrl); // Extract base URL from manifest URL
     }
 
     /**
@@ -48,10 +50,10 @@ export class LibrarySync {
     private async fetchUrl(url: string): Promise<string | null> {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
+
         try {
             const response = await fetch(url, { signal: controller.signal });
-            
+
             // Check for common corporate proxy/registry errors
             if (!response.ok) {
                 // 401/403 - Authentication issues (Artifactory, Nexus)
@@ -61,13 +63,13 @@ export class LibrarySync {
                         'Try running with --local-only flag or configure your .npmrc with proper credentials.'
                     );
                 }
-                
+
                 // 404 - Resource not found (could be blocked by corporate proxy)
                 if (response.status === 404) {
                     // Try to detect if it's a corporate proxy issue
                     const responseText = await response.text().catch(() => '');
-                    if (responseText.includes('artifactory') || 
-                        responseText.includes('nexus') || 
+                    if (responseText.includes('artifactory') ||
+                        responseText.includes('nexus') ||
                         responseText.includes('jfrog') ||
                         responseText.includes('corporate') ||
                         responseText.toLowerCase().includes('proxy')) {
@@ -77,17 +79,17 @@ export class LibrarySync {
                         );
                     }
                 }
-                
+
                 return null;
             }
-            
+
             return await response.text();
         } catch (error) {
             // Re-throw our custom errors
             if (error instanceof Error && error.message.startsWith('CORPORATE_')) {
                 throw error;
             }
-            
+
             // Handle abort/timeout
             if (error instanceof Error && error.name === 'AbortError') {
                 throw new Error(
@@ -95,7 +97,7 @@ export class LibrarySync {
                     'Try running: never sync --local-only'
                 );
             }
-            
+
             // Handle other network errors
             if (error instanceof TypeError) {
                 throw new Error(
@@ -103,7 +105,7 @@ export class LibrarySync {
                     'If behind a corporate proxy, try: never sync --local-only'
                 );
             }
-            
+
             return null;
         } finally {
             clearTimeout(timeout);
@@ -159,7 +161,7 @@ export class LibrarySync {
         }
 
         let manifest: RuleManifest | null = null;
-        
+
         try {
             manifest = await this.fetchManifest();
         } catch (error) {
@@ -187,7 +189,7 @@ export class LibrarySync {
         for (const filePath of manifest.files) {
             // Normalize and validate path to prevent directory traversal
             const resolvedPath = resolve(this.cacheDir, filePath);
-            
+
             // Ensure the resolved path is within the cache directory
             // Use path.relative to check for traversal (..) or absolute paths
             const relativePath = relative(this.cacheDir, resolvedPath);
@@ -195,7 +197,7 @@ export class LibrarySync {
                 result.errors.push(`Invalid path (traversal detected): ${filePath}`);
                 continue;
             }
-            
+
             // Additional check: resolved path must start with cacheDir + separator
             if (!resolvedPath.startsWith(this.cacheDir + sep)) {
                 result.errors.push(`Invalid path (traversal detected): ${filePath}`);

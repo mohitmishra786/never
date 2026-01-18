@@ -15,7 +15,7 @@ describe('LibrarySync', () => {
     beforeEach(() => {
         testCacheDir = join(tmpdir(), `never-cache-test-${Date.now()}`);
         mkdirSync(testCacheDir, { recursive: true });
-        
+
         // Override the cache directory for testing
         librarySync = new LibrarySync();
         // @ts-ignore - accessing private property for testing
@@ -52,7 +52,7 @@ describe('LibrarySync', () => {
                 files: ['core/safety.md', 'typescript/never-ts.md']
             };
             writeFileSync(join(testCacheDir, 'manifest.json'), JSON.stringify(manifest));
-            
+
             const info = librarySync.getCacheInfo();
             expect(info).toEqual({
                 version: '1.0.0',
@@ -71,7 +71,7 @@ describe('LibrarySync', () => {
         it('should use bundled path when cache not available', () => {
             const bundledPath = join(tmpdir(), 'never-bundled-test');
             mkdirSync(bundledPath, { recursive: true });
-            
+
             try {
                 const path = librarySync.getLibraryPath(bundledPath);
                 expect(path).toBe(bundledPath);
@@ -84,7 +84,7 @@ describe('LibrarySync', () => {
     describe('pull with local-only mode', () => {
         it('should skip network fetch in local-only mode', async () => {
             const result = await librarySync.pull(true);
-            
+
             expect(result.updated).toBe(0);
             expect(result.cached).toBe(0);
             expect(result.errors).toHaveLength(1);
@@ -101,17 +101,31 @@ describe('LibrarySync', () => {
         it('should list cached markdown files', () => {
             mkdirSync(join(testCacheDir, 'core'), { recursive: true });
             mkdirSync(join(testCacheDir, 'typescript'), { recursive: true });
-            
+
             writeFileSync(join(testCacheDir, 'core', 'safety.md'), '# Safety');
             writeFileSync(join(testCacheDir, 'typescript', 'never-ts.md'), '# TypeScript');
             writeFileSync(join(testCacheDir, 'manifest.json'), '{}'); // Not a .md file
-            
+
             const files = librarySync.listCachedFiles();
-            
+
             expect(files).toHaveLength(2);
             expect(files.some(f => f.includes('safety.md'))).toBe(true);
             expect(files.some(f => f.includes('never-ts.md'))).toBe(true);
             expect(files.some(f => f.includes('manifest.json'))).toBe(false);
+        });
+
+        it('should list files from deep nested structures (stacks/agents)', () => {
+            mkdirSync(join(testCacheDir, 'stacks'), { recursive: true });
+            mkdirSync(join(testCacheDir, 'agents'), { recursive: true });
+
+            writeFileSync(join(testCacheDir, 'stacks', 'react-typescript.md'), '# React');
+            writeFileSync(join(testCacheDir, 'agents', 'claude-code.md'), '# Claude');
+
+            const files = librarySync.listCachedFiles();
+
+            expect(files).toHaveLength(2);
+            expect(files.some(f => f.includes('stacks/react-typescript.md'))).toBe(true);
+            expect(files.some(f => f.includes('agents/claude-code.md'))).toBe(true);
         });
     });
 
@@ -128,7 +142,7 @@ describe('LibrarySync', () => {
 
             try {
                 const result = await librarySync.pull();
-                
+
                 // If it doesn't throw, check the errors array
                 expect(result.errors.length).toBeGreaterThan(0);
                 expect(result.errors.some(e => e.includes('NETWORK_TIMEOUT'))).toBe(true);
@@ -148,9 +162,9 @@ describe('LibrarySync', () => {
             } as Response);
 
             const result = await librarySync.pull();
-            
+
             expect(result.errors.length).toBeGreaterThan(0);
-            expect(result.errors.some(e => 
+            expect(result.errors.some(e =>
                 e.includes('CORPORATE_PROXY_BLOCK') || e.includes('CORPORATE_')
             )).toBe(true);
         });
@@ -164,7 +178,7 @@ describe('LibrarySync', () => {
             } as Response);
 
             const result = await librarySync.pull();
-            
+
             expect(result.errors.length).toBeGreaterThan(0);
             expect(result.errors.some(e => e.includes('CORPORATE_REGISTRY_AUTH'))).toBe(true);
         });
@@ -188,7 +202,7 @@ describe('LibrarySync', () => {
             });
 
             const result = await librarySync.pull();
-            
+
             expect(result.errors.some(e => e.includes('traversal detected'))).toBe(true);
         });
 
@@ -208,7 +222,7 @@ describe('LibrarySync', () => {
             });
 
             const result = await librarySync.pull();
-            
+
             expect(result.errors.some(e => e.includes('traversal detected'))).toBe(true);
         });
     });

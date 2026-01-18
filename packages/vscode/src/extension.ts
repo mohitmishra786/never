@@ -25,6 +25,7 @@ import {
 let statusBarItem: vscode.StatusBarItem;
 let fileWatcher: vscode.FileSystemWatcher;
 let outputChannel: vscode.OutputChannel;
+let debugChannel: vscode.OutputChannel; // Dedicated channel for activation/debug errors
 let debounceTimer: NodeJS.Timeout | null = null;
 
 // Debounce delay in milliseconds (2 seconds)
@@ -41,7 +42,7 @@ async function checkForUpdates(context: vscode.ExtensionContext): Promise<void> 
         const response = await fetch('https://registry.npmjs.org/@mohitmishra7/never-cli/latest');
         if (!response.ok) return;
         
-        const data = await response.json();
+        const data = await response.json() as { version?: string };
         const latestVersion = data.version;
         
         // Compare versions (simple string comparison for major.minor.patch)
@@ -80,44 +81,197 @@ function compareVersions(a: string, b: string): number {
 
 /**
  * Extension activation
+ * Wrapped in comprehensive error handling to catch activation failures
  */
 export function activate(context: vscode.ExtensionContext) {
-    outputChannel = vscode.window.createOutputChannel('Never');
-    outputChannel.appendLine('Never extension activated');
+    // Create debug channel FIRST - before anything else that could fail
+    debugChannel = vscode.window.createOutputChannel('Never Debug');
+    debugChannel.appendLine('=== Never Extension Activation Started ===');
+    debugChannel.appendLine(`Timestamp: ${new Date().toISOString()}`);
+    debugChannel.appendLine(`VS Code Version: ${vscode.version}`);
+    debugChannel.appendLine(`Extension Version: ${context.extension?.packageJSON.version || 'unknown'}`);
+    debugChannel.appendLine(`Node Version: ${process.version}`);
+    debugChannel.appendLine(`Platform: ${process.platform} ${process.arch}`);
+    debugChannel.appendLine('');
 
-    // Create status bar item
-    statusBarItem = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right,
-        100
-    );
-    statusBarItem.command = 'never.sync';
-    updateStatusBar('ready');
+    try {
+        // Create output channel for normal operations
+        outputChannel = vscode.window.createOutputChannel('Never');
+        outputChannel.appendLine('Never extension activated');
+        debugChannel.appendLine('✓ Output channel created');
 
-    const config = vscode.workspace.getConfiguration('never');
-    if (config.get('showStatusBar', true)) {
-        statusBarItem.show();
+        // Create status bar item
+        statusBarItem = vscode.window.createStatusBarItem(
+            vscode.StatusBarAlignment.Right,
+            100
+        );
+        statusBarItem.command = 'never.sync';
+        updateStatusBar('ready');
+        debugChannel.appendLine('✓ Status bar item created');
+
+        const config = vscode.workspace.getConfiguration('never');
+        if (config.get('showStatusBar', true)) {
+            statusBarItem.show();
+            debugChannel.appendLine('✓ Status bar item shown');
+        }
+
+        // Check for updates (async, don't block activation)
+        checkForUpdates(context).catch((error) => {
+            debugChannel.appendLine(`⚠ Update check failed (non-critical): ${error}`);
+        });
+
+        debugChannel.appendLine('✓ Starting command registration...');
+
+        // Register commands - CRITICAL: These MUST succeed for extension to work
+        context.subscriptions.push(
+            vscode.commands.registerCommand('never.sync', async () => {
+                try {
+                    await handleSync();
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    debugChannel.appendLine(`[ERROR] never.sync failed: ${errorMessage}`);
+                    if (error instanceof Error && error.stack) {
+                        debugChannel.appendLine(error.stack);
+                    }
+                    vscode.window.showErrorMessage(`Never Sync failed: ${errorMessage}`, 'View Debug Log').then(action => {
+                        if (action === 'View Debug Log') {
+                            debugChannel.show();
+                        }
+                    });
+                }
+            }),
+            vscode.commands.registerCommand('never.rollback', async () => {
+                try {
+                    await handleRollback();
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    debugChannel.appendLine(`[ERROR] never.rollback failed: ${errorMessage}`);
+                    if (error instanceof Error && error.stack) {
+                        debugChannel.appendLine(error.stack);
+                    }
+                    vscode.window.showErrorMessage(`Never Rollback failed: ${errorMessage}`, 'View Debug Log').then(action => {
+                        if (action === 'View Debug Log') {
+                            debugChannel.show();
+                        }
+                    });
+                }
+            }),
+            vscode.commands.registerCommand('never.init', async () => {
+                try {
+                    await handleInit();
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    debugChannel.appendLine(`[ERROR] never.init failed: ${errorMessage}`);
+                    if (error instanceof Error && error.stack) {
+                        debugChannel.appendLine(error.stack);
+                    }
+                    vscode.window.showErrorMessage(`Never Init failed: ${errorMessage}`, 'View Debug Log').then(action => {
+                        if (action === 'View Debug Log') {
+                            debugChannel.show();
+                        }
+                    });
+                }
+            }),
+            vscode.commands.registerCommand('never.pull', async () => {
+                try {
+                    await handlePull();
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    debugChannel.appendLine(`[ERROR] never.pull failed: ${errorMessage}`);
+                    if (error instanceof Error && error.stack) {
+                        debugChannel.appendLine(error.stack);
+                    }
+                    vscode.window.showErrorMessage(`Never Pull failed: ${errorMessage}`, 'View Debug Log').then(action => {
+                        if (action === 'View Debug Log') {
+                            debugChannel.show();
+                        }
+                    });
+                }
+            }),
+            vscode.commands.registerCommand('never.doctor', async () => {
+                try {
+                    await handleDoctor();
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    debugChannel.appendLine(`[ERROR] never.doctor failed: ${errorMessage}`);
+                    if (error instanceof Error && error.stack) {
+                        debugChannel.appendLine(error.stack);
+                    }
+                    vscode.window.showErrorMessage(`Never Doctor failed: ${errorMessage}`, 'View Debug Log').then(action => {
+                        if (action === 'View Debug Log') {
+                            debugChannel.show();
+                        }
+                    });
+                }
+            }),
+            statusBarItem,
+            outputChannel,
+            debugChannel
+        );
+
+        debugChannel.appendLine('✓ All commands registered successfully');
+        debugChannel.appendLine('  - never.sync');
+        debugChannel.appendLine('  - never.rollback');
+        debugChannel.appendLine('  - never.init');
+        debugChannel.appendLine('  - never.pull');
+        debugChannel.appendLine('  - never.doctor');
+
+        // Set up file watcher for package.json and .cursorrules
+        try {
+            setupFileWatcher(context);
+            debugChannel.appendLine('✓ File watcher set up successfully');
+        } catch (error) {
+            // Non-critical error - log but don't fail activation
+            debugChannel.appendLine(`⚠ File watcher setup failed (non-critical): ${error}`);
+        }
+
+        outputChannel.appendLine('Never extension ready');
+        debugChannel.appendLine('');
+        debugChannel.appendLine('=== Never Extension Activation COMPLETED SUCCESSFULLY ===');
+        debugChannel.appendLine(`Total activation time: ${Date.now()}`);
+        debugChannel.appendLine('');
+        debugChannel.appendLine('If you see this message, the extension activated correctly.');
+        debugChannel.appendLine('If commands are not working, please report this log at:');
+        debugChannel.appendLine('https://github.com/mohitmishra786/never/issues');
+        
+    } catch (error) {
+        // CRITICAL ERROR during activation
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error && error.stack ? error.stack : 'No stack trace';
+        
+        debugChannel.appendLine('');
+        debugChannel.appendLine('=== CRITICAL: ACTIVATION FAILED ===');
+        debugChannel.appendLine(`Error: ${errorMessage}`);
+        debugChannel.appendLine(`Stack trace:\n${errorStack}`);
+        debugChannel.appendLine('');
+        debugChannel.appendLine('This is a critical error. The extension did not load properly.');
+        debugChannel.appendLine('Please copy this entire log and report it at:');
+        debugChannel.appendLine('https://github.com/mohitmishra786/never/issues');
+        
+        // Show the debug channel immediately
+        debugChannel.show();
+        
+        // Show error message with helpful actions
+        vscode.window.showErrorMessage(
+            `Never extension failed to activate: ${errorMessage}`,
+            'View Debug Log',
+            'Copy Error',
+            'Report Issue'
+        ).then(action => {
+            if (action === 'View Debug Log') {
+                debugChannel.show();
+            } else if (action === 'Copy Error') {
+                const errorReport = `Never Extension Activation Error\n\nVersion: ${context.extension?.packageJSON.version || 'unknown'}\nNode: ${process.version}\nVS Code: ${vscode.version}\n\nError: ${errorMessage}\n\nStack:\n${errorStack}`;
+                vscode.env.clipboard.writeText(errorReport);
+                vscode.window.showInformationMessage('Error details copied to clipboard');
+            } else if (action === 'Report Issue') {
+                vscode.env.openExternal(vscode.Uri.parse('https://github.com/mohitmishra786/never/issues/new'));
+            }
+        });
+        
+        // Re-throw to ensure VS Code knows activation failed
+        throw error;
     }
-
-    // Check for updates (async, don't block activation)
-    checkForUpdates(context).catch(() => {
-        // Ignore errors
-    });
-
-    // Register commands
-    context.subscriptions.push(
-        vscode.commands.registerCommand('never.sync', handleSync),
-        vscode.commands.registerCommand('never.rollback', handleRollback),
-        vscode.commands.registerCommand('never.init', handleInit),
-        vscode.commands.registerCommand('never.pull', handlePull),
-        vscode.commands.registerCommand('never.doctor', handleDoctor),
-        statusBarItem,
-        outputChannel
-    );
-
-    // Set up file watcher for package.json and .cursorrules
-    setupFileWatcher(context);
-
-    outputChannel.appendLine('Never extension ready');
 }
 
 /**
@@ -724,6 +878,11 @@ async function handleDoctor(): Promise<void> {
  * Extension deactivation
  */
 export function deactivate(): void {
+    if (debugChannel) {
+        debugChannel.appendLine('=== Never Extension Deactivating ===');
+        debugChannel.appendLine(`Timestamp: ${new Date().toISOString()}`);
+    }
+
     // Clear any pending debounce timers
     if (debounceTimer) {
         clearTimeout(debounceTimer);
@@ -735,5 +894,9 @@ export function deactivate(): void {
     }
     if (outputChannel) {
         outputChannel.dispose();
+    }
+    if (debugChannel) {
+        debugChannel.appendLine('Never extension deactivated cleanly');
+        debugChannel.dispose();
     }
 }

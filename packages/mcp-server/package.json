@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-mcp-server",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "MCP Server for Never - provides AI constraints via Model Context Protocol",
     "type": "module",
     "main": "./dist/index.js",
@@ -15,9 +15,9 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.0",
-        "@mohitmishra7/never-core": "*",
+        "@mohitmishra7/never-core": "0.0.5",
         "gray-matter": "^4.0.3",
-        "minimatch": "^10.0.1"
+        "minimatch": "^9.0.5"
     },
     "devDependencies": {
         "@types/node": "^20.17.9",

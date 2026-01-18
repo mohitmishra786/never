@@ -38,18 +38,20 @@ const esbuildProblemMatcherPlugin = {
 async function main() {
     const ctx = await esbuild.context({
         entryPoints: ['src/extension.ts'],
-        bundle: true,
-        format: 'cjs',
+        bundle: true, // Bundle ALL dependencies (including @mohitmishra7/never-core)
+        format: 'cjs', // CommonJS format for VS Code
         minify: production,
         sourcemap: !production,
         sourcesContent: false,
-        platform: 'node',
+        platform: 'node', // Target Node.js (VS Code's runtime)
         outfile: 'dist/extension.js',
-        external: ['vscode'],
+        external: ['vscode'], // ONLY exclude vscode - bundle everything else
         logLevel: 'info',
         plugins: [
             esbuildProblemMatcherPlugin,
         ],
+        // Ensure we're targeting Node 18+ compatible code
+        target: 'node18',
     });
 
     if (watch) {
