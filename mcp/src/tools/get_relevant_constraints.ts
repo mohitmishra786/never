@@ -38,7 +38,12 @@ const DEFAULT_FRONTMATTER: RuleFrontmatter = {
 };
 
 /**
- * Find the library path relative to where the server is running
+ * Locate the Never constraints library directory for a given project.
+ *
+ * Checks a set of plausible locations (project/library, node_modules/never-cli/library, and a library path relative to the current module) and returns the first existing path.
+ *
+ * @param projectPath - Absolute or relative path to the project's root directory
+ * @returns The filesystem path to the library if found, `null` otherwise
  */
 function findLibraryPath(projectPath: string): string | null {
     const possiblePaths = [
@@ -57,7 +62,11 @@ function findLibraryPath(projectPath: string): string | null {
 }
 
 /**
- * Parse a rule file and extract rules
+ * Parse a markdown rule file and produce a structured rule object containing its metadata and extracted "Never" constraints.
+ *
+ * @param filePath - Filesystem path to the markdown rule file
+ * @param ruleSetName - Namespace used to construct the rule `id` (prefixed to the filename without extension)
+ * @returns A `ParsedRule` containing `id`, `filename`, `frontmatter`, `content`, and an array of extracted `Never` rules, or `null` if the file does not exist or cannot be parsed
  */
 function parseRuleFile(filePath: string, ruleSetName: string): ParsedRule | null {
     if (!existsSync(filePath)) {
@@ -99,11 +108,19 @@ function parseRuleFile(filePath: string, ruleSetName: string): ParsedRule | null
 }
 
 /**
- * Load all rules from the library
+ * Recursively loads all markdown rule files under the given library directory and returns their parsed representations.
+ *
+ * @param libraryPath - Filesystem path to the root of the rule library
+ * @returns An array of ParsedRule objects for each `.md` rule file discovered under `libraryPath`
  */
 function loadAllRules(libraryPath: string): ParsedRule[] {
     const rules: ParsedRule[] = [];
 
+    /**
+     * Recursively traverses the given directory and appends parsed Markdown rule files to the module-level `rules` collection.
+     *
+     * @param dirPath - Path of the directory to walk. Any `.md` files found will be parsed into rule objects and added to `rules`; subdirectories are traversed recursively.
+     */
     function walkDirectory(dirPath: string): void {
         const entries = readdirSync(dirPath);
         const dirName = basename(dirPath);
@@ -128,7 +145,11 @@ function loadAllRules(libraryPath: string): ParsedRule[] {
 }
 
 /**
- * Check if a rule applies to a given file path
+ * Determine whether a parsed rule should apply to a specific file path.
+ *
+ * @param rule - The parsed rule whose `frontmatter.alwaysApply` and `frontmatter.globs` determine applicability.
+ * @param filePath - The file path to test against the rule's glob patterns (used with `minimatch`).
+ * @returns `true` if the rule applies to the file, `false` otherwise.
  */
 function ruleAppliesToFile(rule: ParsedRule, filePath: string): boolean {
     if (rule.frontmatter.alwaysApply) {
@@ -145,7 +166,10 @@ function ruleAppliesToFile(rule: ParsedRule, filePath: string): boolean {
 }
 
 /**
- * Format rules as markdown for the AI
+ * Render applicable parsed rules into a Markdown document that lists each rule set and its "Never" constraints.
+ *
+ * @param rules - ParsedRule objects to include, each providing a frontmatter.name and extracted Never constraint lines
+ * @returns A Markdown string with a top-level heading and sections per rule name; if `rules` is empty, returns a short message indicating no constraints apply.
  */
 function formatRulesAsMarkdown(rules: ParsedRule[]): string {
     if (rules.length === 0) {
@@ -180,7 +204,11 @@ function formatRulesAsMarkdown(rules: ParsedRule[]): string {
 }
 
 /**
- * Main tool implementation
+ * Produce a Markdown report of Never constraints applicable to the given files within a project.
+ *
+ * @param files - File paths to evaluate against the Never rules; paths are matched against each rule's globs.
+ * @param projectPath - Root path of the project used to locate the Never library.
+ * @returns A Markdown-formatted string listing applicable Never constraints grouped by rule name, or a human-readable message if the Never library is not found or contains no rules. 
  */
 export async function getRelevantConstraints(
     files: string[],

@@ -97,7 +97,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
 });
 
-// Start the server
+/**
+ * Start the MCP server and connect it to a stdio transport.
+ *
+ * Connects the global server instance to a new StdioServerTransport and logs a startup message to stderr.
+ */
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);

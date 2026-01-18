@@ -31,7 +31,10 @@ interface PyProjectToml {
 }
 
 /**
- * Detect programming languages in the project
+ * Identify programming languages present in a project directory.
+ *
+ * @param projectPath - Path to the project root directory to scan for language indicators.
+ * @returns Array of detected language identifiers such as `typescript`, `javascript`, `python`, `rust`, `go`, `java`, `ruby`, or `php`.
  */
 function detectLanguages(projectPath: string): string[] {
     const languages: string[] = [];
@@ -85,7 +88,13 @@ function detectLanguages(projectPath: string): string[] {
 }
 
 /**
- * Detect frameworks from package.json dependencies
+ * Detect JavaScript/Node frameworks declared in a project's package.json.
+ *
+ * Parses dependencies and devDependencies to identify frameworks and tools
+ * (for example: React, Next.js, Vue, Nuxt, Angular, Svelte, Express, Fastify,
+ * NestJS, Jest, Vitest, Mocha, Webpack, Vite, Esbuild, Tailwind).
+ *
+ * @returns An array of detected framework identifiers; empty if none are found or if package.json is missing or cannot be parsed.
  */
 function detectNodeFrameworks(projectPath: string): string[] {
     const frameworks: string[] = [];
@@ -174,7 +183,10 @@ function detectNodeFrameworks(projectPath: string): string[] {
 }
 
 /**
- * Detect Python frameworks
+ * Detects Python frameworks and common Python libraries referenced in a project directory.
+ *
+ * @param projectPath - Path to the project's root directory
+ * @returns A deduplicated array of detected identifiers (for example: `django`, `flask`, `fastapi`, `pytest`, `numpy`, `pandas`, `ml`); empty if none are found
  */
 function detectPythonFrameworks(projectPath: string): string[] {
     const frameworks: string[] = [];
@@ -215,7 +227,13 @@ function detectPythonFrameworks(projectPath: string): string[] {
 }
 
 /**
- * Detect development tools
+ * Detects development and auxiliary tooling present in a project directory.
+ *
+ * Checks for common tooling including AI-assisted tools, version control, containerization,
+ * CI/CD workflows, and linters/formatters and returns identifiers for each tool found.
+ *
+ * @param projectPath - Path to the project root to scan
+ * @returns An array of tool identifiers found in the project (for example: `git`, `docker`, `github-actions`, `gitlab-ci`, `eslint`, `prettier`, `cursor`, `claude`, `copilot`)
  */
 function detectTools(projectPath: string): string[] {
     const tools: string[] = [];
@@ -261,7 +279,11 @@ function detectTools(projectPath: string): string[] {
 }
 
 /**
- * Map detected items to recommended rule packs
+ * Selects recommended rule pack identifiers based on detected languages and frameworks.
+ *
+ * @param languages - Detected language identifiers (e.g., `typescript`, `python`)
+ * @param frameworks - Detected framework identifiers (e.g., `react`, `django`)
+ * @returns An array of recommended pack identifiers including `core` and any language- or framework-specific packs; duplicates are removed
  */
 function getRecommendedPacks(languages: string[], frameworks: string[]): string[] {
     const packs: string[] = ['core']; // Always include core
@@ -298,7 +320,14 @@ function getRecommendedPacks(languages: string[], frameworks: string[]): string[
 }
 
 /**
- * Perform a complete project scan
+ * Scan a project directory to detect its languages, frameworks, tools, and recommended rule packs.
+ *
+ * @param projectPath - Filesystem path to the project root to scan
+ * @returns An object with the scan results:
+ *  - `frameworks`: detected frameworks in the project
+ *  - `languages`: detected programming languages
+ *  - `tools`: detected development tools and infrastructure (CI, Docker, VCS, AI tools, linters, etc.)
+ *  - `recommendedPacks`: identifiers of recommended rule packs based on detected languages and frameworks
  */
 export function scanProject(projectPath: string): ScanResult {
     const languages = detectLanguages(projectPath);
@@ -317,7 +346,14 @@ export function scanProject(projectPath: string): ScanResult {
 }
 
 /**
- * Main scan command handler
+ * Scan the current working directory and print detected languages, frameworks, tools, and recommended rule packs.
+ *
+ * When `options.json` is true, emits the scan result as JSON to stdout. Otherwise prints a formatted, human-readable
+ * summary. When `options.verbose` is true, prints additional guidance lines.
+ *
+ * @param options - Scan options
+ * @param options.json - If true, output the full ScanResult as JSON instead of formatted text
+ * @param options.verbose - If true, include extra informational hints in the output
  */
 export async function scanCommand(options: ScanOptions): Promise<void> {
     const projectPath = process.cwd();

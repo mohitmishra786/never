@@ -94,8 +94,17 @@ For project-specific guidelines not covered by the Never rules above, add them b
 }
 
 /**
- * Replace content between markers using indexOf for robust handling.
- * Validates marker positions to handle edge cases properly.
+ * Replace the text between two marker strings in an existing document with the provided rules block.
+ *
+ * Searches for `startMarker` and the first `endMarker` occurring after it; if both markers are found and ordered
+ * correctly, returns a new string where the content between them is replaced by a standardized constraints block
+ * that includes `rulesContent`. If the markers are missing or misordered, returns `null`.
+ *
+ * @param existingContent - The original document content to search within
+ * @param rulesContent - The rules text to insert between the markers
+ * @param startMarker - The exact starting marker string that precedes the section to replace
+ * @param endMarker - The exact ending marker string that follows the section to replace
+ * @returns The updated document content with the markers' section replaced, or `null` if replacement cannot be performed
  */
 function replaceMarkerSection(
     existingContent: string,
@@ -129,8 +138,15 @@ ${endMarker}${afterMarker}`;
 }
 
 /**
- * Update existing AGENTS.md or create new one
- * Returns structured result for testability (especially dry-run mode)
+ * Create or update the AGENTS.md file for a project with the generated Never-rule sections.
+ *
+ * Replaces the content between NEVER_SECTION_START and NEVER_SECTION_END if those markers exist;
+ * otherwise appends a Never constraints block to the existing file or generates a new AGENTS.md.
+ *
+ * @param projectPath - Path to the project directory where AGENTS.md should be created or updated
+ * @param rules - Parsed Never-rule definitions used to generate the constraints section
+ * @param dryRun - If `true`, do not write changes to disk; still returns the resulting content
+ * @returns An EngineSyncResult with `path` set to the AGENTS.md path, `content` containing the final file text, and `written` set to `true` if the file was written to disk, `false` for a dry run
  */
 export function updateAgentsFile(
     projectPath: string,

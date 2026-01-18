@@ -110,21 +110,31 @@ export type LintViolation = z.infer<typeof LintViolationSchema>;
 export type ScanResult = z.infer<typeof ScanResultSchema>;
 
 /**
- * Validate rule frontmatter from parsed YAML
+ * Validate and parse a YAML-parsed frontmatter object into a RuleFrontmatter.
+ *
+ * @param data - The parsed frontmatter (typically the result of YAML parsing)
+ * @returns The validated `RuleFrontmatter`
+ * @throws {ZodError} If the provided data does not conform to the RuleFrontmatter schema
  */
 export function validateFrontmatter(data: unknown): RuleFrontmatter {
     return RuleFrontmatterSchema.parse(data);
 }
 
 /**
- * Validate a complete parsed rule
+ * Parse and validate the given value as a complete parsed rule.
+ *
+ * @param data - The input to validate (typically an object produced from a parsed rule file)
+ * @returns The validated `ParsedRule` object
  */
 export function validateParsedRule(data: unknown): ParsedRule {
     return ParsedRuleSchema.parse(data);
 }
 
 /**
- * Safe validation that returns null instead of throwing
+ * Attempts to parse and validate frontmatter data.
+ *
+ * @param data - The input to validate as frontmatter
+ * @returns The parsed `RuleFrontmatter` if validation succeeds, `null` otherwise
  */
 export function safeParseFrontmatter(data: unknown): RuleFrontmatter | null {
     const result = RuleFrontmatterSchema.safeParse(data);
