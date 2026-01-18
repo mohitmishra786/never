@@ -11,6 +11,15 @@ const NEVER_SECTION_START = '<!-- NEVER-RULES-START -->';
 const NEVER_SECTION_END = '<!-- NEVER-RULES-END -->';
 
 /**
+ * Result of a sync operation for testability
+ */
+export interface EngineSyncResult {
+    path: string;
+    content: string;
+    written: boolean;
+}
+
+/**
  * Generate AGENTS.md content from rules
  */
 export function generateAgentsContent(rules: ParsedRule[]): string {
@@ -95,7 +104,11 @@ function replaceMarkerSection(
     endMarker: string
 ): string | null {
     const startIndex = existingContent.indexOf(startMarker);
-    const endIndex = existingContent.indexOf(endMarker);
+    // Find end marker AFTER the start marker to avoid false matches
+    const endIndex = existingContent.indexOf(
+        endMarker,
+        startIndex + startMarker.length
+    );
 
     // Validate marker positions
     if (startIndex < 0 || endIndex < 0 || endIndex <= startIndex) {
@@ -117,12 +130,13 @@ ${endMarker}${afterMarker}`;
 
 /**
  * Update existing AGENTS.md or create new one
+ * Returns structured result for testability (especially dry-run mode)
  */
 export function updateAgentsFile(
     projectPath: string,
     rules: ParsedRule[],
     dryRun: boolean = false
-): string {
+): EngineSyncResult {
     const agentsPath = join(projectPath, 'AGENTS.md');
     const rulesContent = generateAgentsContent(rules);
     let finalContent: string;
@@ -164,5 +178,9 @@ ${NEVER_SECTION_END}
         writeFileSync(agentsPath, finalContent, 'utf-8');
     }
 
-    return agentsPath;
+    return {
+        path: agentsPath,
+        content: finalContent,
+        written: !dryRun,
+    };
 }

@@ -106,6 +106,9 @@ export function getLibraryPath(): string {
         }
     }
 
-    // Default to relative path
-    return './library';
+    // No valid library path found - throw error to let caller handle
+    throw new Error(
+        'Never library not found. Ensure it exists in one of the expected locations:\n' +
+        possiblePaths.map(p => `  - ${p}`).join('\n')
+    );
 }

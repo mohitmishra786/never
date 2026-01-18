@@ -10,6 +10,7 @@ The library lives in `library/`. Each markdown file follows a specific format th
 ---
 name: Rule Category Name
 description: What this category covers
+category: security  # One of: security, style, logic, workflow, quality, core
 tags: [relevant, tags]
 globs: "**/*.ts"
 alwaysApply: false
@@ -23,13 +24,27 @@ alwaysApply: false
 - Never do the other thing that causes different problems
 ```
 
+### Frontmatter Fields
+
 The frontmatter tells the sync engines how to handle the rules:
 
-- `name`: Human readable category name
-- `description`: Brief explanation for the list command
-- `tags`: Used for filtering and grouping
-- `globs`: File patterns where these rules apply (Cursor uses this)
-- `alwaysApply`: Whether rules load regardless of file type
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Human-readable category name |
+| `description` | string | Yes | Brief explanation for the list command |
+| `category` | enum | No | One of: `security`, `style`, `logic`, `workflow`, `quality`, `core` |
+| `tags` | string[] | No | Used for filtering and grouping |
+| `globs` | string | No | File patterns where these rules apply (default: `**/*`) |
+| `alwaysApply` | boolean | No | Whether rules load regardless of file type (default: `true`) |
+
+### Category Guidelines
+
+- **security**: Rules preventing vulnerabilities, credential exposure, injection attacks
+- **style**: Code formatting, naming conventions, documentation requirements
+- **logic**: Algorithm correctness, edge case handling, state management
+- **workflow**: Development process, git practices, deployment constraints
+- **quality**: Code structure, maintainability, testing requirements
+- **core**: Fundamental rules that apply across all projects
 
 Each rule should start with "Never" and describe a specific, actionable constraint. Avoid vague guidance like "write clean code" in favor of concrete requirements like "never use magic numbers without defining named constants."
 
@@ -51,6 +66,23 @@ The sync engines in `cli/src/engines/` convert parsed rules to tool-specific for
 3. Add a config option in the `targets` section
 4. Update the sync command to call your engine
 
+### Using the SyncEngine Class
+
+For complex integrations, you can use the `SyncEngine` class in `cli/src/engines/SyncEngine.ts`:
+
+```typescript
+import { SyncEngine } from './engines/SyncEngine.js';
+
+const engine = new SyncEngine({
+    projectPath: '/path/to/project',
+    dryRun: false,
+    verbose: true,
+});
+
+const summary = engine.syncAll();
+console.log(`Generated ${summary.results.length} files`);
+```
+
 ## Pull Request Process
 
 1. Create a branch from `main` with a descriptive name
@@ -69,6 +101,15 @@ The project uses TypeScript with strict mode enabled. Follow the existing patter
 
 No linting rules are enforced automatically yet, but that might change.
 
+## MCP Server Contributions
+
+The MCP server in `/mcp` exposes Never constraints to AI agents via the Model Context Protocol. Contributions here should:
+
+1. Follow the MCP SDK patterns in `mcp/src/index.ts`
+2. Add new tools with proper input schemas
+3. Document usage in `mcp/README.md`
+
 ## Questions
 
 Open an issue if something is unclear. Better to ask than to guess.
+
