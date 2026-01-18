@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-mcp-server",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "MCP Server for Never - provides AI constraints via Model Context Protocol",
     "type": "module",
     "main": "./dist/index.js",
