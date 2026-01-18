@@ -6,6 +6,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { homedir } from 'node:os';
 import { minimatch } from 'minimatch';
 import matter from 'gray-matter';
 
@@ -92,6 +93,7 @@ const CONTENT_PATTERNS: Array<{ pattern: RegExp; tags: string[] }> = [
  */
 function findLibraryPath(projectPath: string): string | null {
     const possiblePaths = [
+        join(homedir(), '.never', 'library'),
         join(projectPath, 'library'),
         join(projectPath, 'node_modules', 'never-cli', 'library'),
         join(dirname(dirname(__dirname)), 'library'),

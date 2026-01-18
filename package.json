@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "description": "AI constraint engine for Claude, Cursor, and more",
+    "packageManager": "npm@10.0.0",
     "workspaces": [
         "packages/*"
     ],

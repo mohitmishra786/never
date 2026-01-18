@@ -323,7 +323,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     const projectPath = process.cwd();
     const verbose = options.verbose || false;
 
-    console.log(chalk.bold('Scanning project...\\n'));
+    console.log(chalk.bold('Scanning project...\n'));
 
     const result = scanProject(projectPath);
 

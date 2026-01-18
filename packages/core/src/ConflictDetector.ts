@@ -90,27 +90,46 @@ export class ConflictDetector {
         similarityThreshold: number = 0.4
     ): Conflict[] {
         const conflicts: Conflict[] = [];
-        const nonNeverContent = this.extractNonNeverContent(existingContent);
-        const lines = nonNeverContent.split('\n');
+        const startMarker = '<!-- NEVER-RULES-START -->';
+        const endMarker = '<!-- NEVER-RULES-END -->';
+        const lines = existingContent.split('\n');
+        let insideMarker = false;
 
         for (const newRule of newRules) {
             const ruleTokens = this.tokenize(newRule);
 
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-
-                // Skip empty lines or lines without instruction keywords
-                if (!line || !this.isInstructionLine(line)) {
+                const line = lines[i];
+                
+                // Track marker regions
+                if (line.includes(startMarker)) {
+                    insideMarker = true;
+                    continue;
+                }
+                if (line.includes(endMarker)) {
+                    insideMarker = false;
+                    continue;
+                }
+                
+                // Skip lines inside markers
+                if (insideMarker) {
                     continue;
                 }
 
-                const lineTokens = this.tokenize(line);
+                const trimmedLine = line.trim();
+
+                // Skip empty lines or lines without instruction keywords
+                if (!trimmedLine || !this.isInstructionLine(trimmedLine)) {
+                    continue;
+                }
+
+                const lineTokens = this.tokenize(trimmedLine);
                 const similarity = this.calculateSimilarity(ruleTokens, lineTokens);
 
                 if (similarity >= similarityThreshold) {
                     conflicts.push({
                         newRule,
-                        existingLine: line,
+                        existingLine: trimmedLine,
                         lineNumber: i + 1,
                         similarity,
                     });

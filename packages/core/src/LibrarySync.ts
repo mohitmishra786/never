@@ -4,7 +4,7 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, dirname, relative } from 'path';
 import { homedir } from 'os';
 
 export interface LibrarySyncResult {
@@ -114,9 +114,18 @@ export class LibrarySync {
 
         // Fetch each rule file
         for (const filePath of manifest.files) {
+            // Normalize and validate path to prevent directory traversal
+            const resolvedPath = resolve(this.cacheDir, filePath);
+            
+            // Ensure the resolved path is within the cache directory
+            if (!resolvedPath.startsWith(this.cacheDir)) {
+                result.errors.push(`Invalid path (traversal detected): ${filePath}`);
+                continue;
+            }
+
             const url = `${this.repoBaseUrl}/${filePath}`;
-            const localPath = join(this.cacheDir, filePath);
-            const localDir = join(this.cacheDir, filePath.split('/')[0]);
+            const localPath = resolvedPath;
+            const localDir = dirname(localPath);
 
             // Ensure subdirectory exists
             if (!existsSync(localDir)) {

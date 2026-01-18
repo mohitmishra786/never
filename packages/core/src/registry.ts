@@ -205,12 +205,16 @@ export class RuleRegistry {
      * Convert glob pattern to regex
      */
     private globToRegex(glob: string): string {
-        return glob
-            .replace(/\*\*/g, '<<<DOUBLESTAR>>>')
-            .replace(/\*/g, '[^/]*')
-            .replace(/<<<DOUBLESTAR>>>/g, '.*')
-            .replace(/\./g, '\\.')
-            .replace(/\?/g, '.');
+        // First escape special regex characters (except glob tokens)
+        let result = glob.replace(/[.+^$()[\]{}|\\]/g, '\\$&');
+        
+        // Then expand glob tokens
+        result = result.replace(/\*\*/g, '<<<DOUBLESTAR>>>');
+        result = result.replace(/\*/g, '[^/]*');
+        result = result.replace(/<<<DOUBLESTAR>>>/g, '.*');
+        result = result.replace(/\?/g, '.');
+        
+        return result;
     }
 
     /**
@@ -235,6 +239,31 @@ export class RuleRegistry {
     }
 
     /**
+     * Validate regex pattern for safety (basic ReDoS protection)
+     */
+    private isRegexSafe(pattern: string): boolean {
+        // Reject patterns that are too long
+        if (pattern.length > 500) {
+            return false;
+        }
+        
+        // Reject patterns with excessive nesting or repetition
+        const dangerousPatterns = [
+            /(\(.*\+.*\)){3,}/, // Nested repetitions
+            /(\*|\+|\{[0-9,]+\}){3,}/, // Multiple consecutive quantifiers
+            /(.+\|.+){5,}/, // Excessive alternations
+        ];
+        
+        for (const dangerous of dangerousPatterns) {
+            if (dangerous.test(pattern)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
      * Get rules matching a file path using trigger_regex
      */
     getRulesForFile(filePath: string): Rule[] {
@@ -247,6 +276,12 @@ export class RuleRegistry {
             }
 
             try {
+                // Validate pattern before creating regex
+                if (!this.isRegexSafe(rule.trigger_regex)) {
+                    console.warn(`Unsafe regex pattern skipped for rule ${rule.id}`);
+                    continue;
+                }
+                
                 const regex = new RegExp(rule.trigger_regex);
                 if (regex.test(filePath)) {
                     matching.push(rule);

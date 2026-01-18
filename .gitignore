@@ -48,3 +48,4 @@ ehthumbs.db
 tmp/
 temp/
 *.tmp
+.turbo/
