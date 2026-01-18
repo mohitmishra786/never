@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { RuleRegistry, createRegistryFromLibrary, type Rule } from '../src/registry/registry.js';
+import { RuleRegistry, createRegistryFromLibrary, type Rule } from './registry.js';
 
 describe('RuleRegistry', () => {
     let registry: RuleRegistry;

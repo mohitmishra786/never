@@ -281,6 +281,9 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
         const relPath = relative(projectPath, compPath);
         const depth = relPath.split(sep).length;
 
+        // Debug log
+        console.log(`Checking ${compPath} (rel: ${relPath}), depth: ${depth}, exists: ${existsSync(compPath)}, ignored: ${shouldIgnore(ig, projectPath, compPath)}`);
+
         if (depth <= maxDepth && existsSync(compPath) && !shouldIgnore(ig, projectPath, compPath)) {
             info.hasComponents = true;
             if (!info.hasReact && !info.hasVue && !info.hasAngular) {
