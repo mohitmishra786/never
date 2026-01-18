@@ -1,5 +1,5 @@
 /**
- * @never/core - Core engine for Never constraint management
+ * @mohitmishra7/never-core - Core engine for Never constraint management
  */
 
 // Safety & Resilience
@@ -8,6 +8,7 @@ export { ConflictDetector, createConflictDetector, type Conflict } from './Confl
 
 // Library Management
 export { LibrarySync, createLibrarySync, type LibrarySyncResult, type RuleManifest } from './LibrarySync.js';
+export { loadConfig, getLibraryPath, type NeverConfig } from './config.js';
 
 // Rule Registry
 export {
@@ -29,13 +30,26 @@ export {
     type StackInfo,
 } from './StackScanner.js';
 
+// Generators
+export {
+    writeCategoryMdcFiles,
+    generateSkillFile,
+    updateClaudeFile,
+    updateAgentsFile,
+    replaceMarkerSection
+} from './generators.js';
+
 // Sync Engine
 export {
     SyncEngine,
     createSyncEngine,
     type ParsedRule,
     type RuleFrontmatter,
-    type NeverConfig,
     type SyncResult,
     type SyncOptions,
 } from './SyncEngine.js';
+
+export { loadRulesFromLibrary } from './SyncEngine.js';
+
+export type ScanResult = any; // Placeholder until properly typed from StackScanner if needed
+export type LintViolation = any; // Placeholder until we verify schema

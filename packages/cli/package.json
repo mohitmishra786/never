@@ -1,6 +1,6 @@
 {
-    "name": "@never/cli",
-    "version": "1.0.0",
+    "name": "@mohitmishra7/never-cli",
+    "version": "0.0.3",
     "description": "AI constraint CLI for Claude, Cursor, and more",
     "type": "module",
     "main": "./dist/index.js",
@@ -17,10 +17,12 @@
     },
     "dependencies": {
         "@clack/prompts": "^0.7.0",
-        "@never/core": "*",
+        "@mohitmishra7/never-core": "*",
         "chalk": "^5.3.0",
         "commander": "^12.1.0",
         "gray-matter": "^4.0.3",
+        "minimatch": "^10.1.1",
+        "simple-git": "^3.30.0",
         "yaml": "^2.6.1"
     },
     "devDependencies": {

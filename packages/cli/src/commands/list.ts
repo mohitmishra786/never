@@ -5,8 +5,7 @@
 
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { loadConfig, getLibraryPath } from '../utils/config.js';
-import { loadAllRuleSets } from '../engines/parser.js';
+import { loadConfig, getLibraryPath, loadRulesFromLibrary } from '@mohitmishra7/never-core';
 
 interface ListOptions {
     all?: boolean;
@@ -32,10 +31,20 @@ export async function listCommand(options: ListOptions): Promise<void> {
         process.exit(1);
     }
 
-    const allRuleSets = loadAllRuleSets(libraryPath);
+    const allRules = loadRulesFromLibrary(libraryPath);
+
+    // Group rules by set (category)
+    const ruleSets = new Map<string, typeof allRules>();
+    for (const rule of allRules) {
+        const category = rule.id.split('/')[0];
+        if (!ruleSets.has(category)) {
+            ruleSets.set(category, []);
+        }
+        ruleSets.get(category)!.push(rule);
+    }
 
     // Display rule sets
-    for (const [name, ruleSet] of allRuleSets) {
+    for (const [name, rules] of ruleSets) {
         const isEnabled = enabledRules.includes(name);
         const status = isEnabled ? '[ENABLED]' : '[disabled]';
 
@@ -46,11 +55,11 @@ export async function listCommand(options: ListOptions): Promise<void> {
         console.log(`${status} ${name}`);
 
         // Count total rules in this set
-        const totalRules = ruleSet.rules.reduce((sum, rule) => sum + rule.rules.length, 0);
-        console.log(`  Files: ${ruleSet.rules.length}, Rules: ${totalRules}`);
+        const totalRules = rules.reduce((sum: number, rule: any) => sum + rule.rules.length, 0);
+        console.log(`  Files: ${rules.length}, Rules: ${totalRules}`);
 
         // Show file names
-        for (const rule of ruleSet.rules) {
+        for (const rule of rules) {
             console.log(`    - ${rule.filename}: ${rule.frontmatter.description}`);
         }
 
@@ -59,7 +68,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
 
     // Show summary
     console.log('='.repeat(50));
-    console.log(`\nTotal rule sets: ${allRuleSets.size}`);
+    console.log(`\nTotal rule sets: ${ruleSets.size}`);
     console.log(`Enabled: ${enabledRules.length > 0 ? enabledRules.join(', ') : 'none (run `never init` first)'}`);
 
     if (!showAll) {

@@ -8,10 +8,14 @@ import { join } from 'path';
 import chalk from 'chalk';
 import { simpleGit } from 'simple-git';
 import { minimatch } from 'minimatch';
-import { loadConfig, getLibraryPath } from '../utils/config.js';
-import { loadAllRuleSets, getRulesForSets } from '../engines/parser.js';
-import type { LintViolation } from '../schema.js';
-import type { ParsedRule } from '../engines/parser.js';
+import {
+    loadConfig,
+    getLibraryPath,
+    RuleRegistry,
+    loadRulesFromLibrary,
+    type LintViolation,
+    type ParsedRule
+} from '@mohitmishra7/never-core';
 
 interface LintOptions {
     staged?: boolean;
@@ -202,8 +206,11 @@ export async function lintCommand(options: LintOptions): Promise<void> {
         process.exit(1);
     }
 
-    const allRuleSets = loadAllRuleSets(libraryPath);
-    const activeRules = getRulesForSets(allRuleSets, ruleSets);
+    const allRules = loadRulesFromLibrary(libraryPath);
+    const activeRules = allRules.filter(rule => {
+        const category = rule.id.split('/')[0];
+        return ruleSets.includes(category);
+    });
 
     if (verbose) {
         console.log(`Using ${activeRules.length} rule files from sets: ${ruleSets.join(', ')}\\n`);

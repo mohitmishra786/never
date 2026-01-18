@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
 import YAML from 'yaml';
-import { detectProject, suggestRuleSets } from '@never/core';
+import { detectProject, suggestRuleSets } from '@mohitmishra7/never-core';
 
 interface InitConfig {
     agents: string[];

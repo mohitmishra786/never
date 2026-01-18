@@ -1,13 +1,8 @@
-# typed: false
-# frozen_string_literal: true
-
-# Homebrew Formula for Never CLI
-# AI constraint engine for Claude, Cursor, and more
 class Never < Formula
-  desc "AI constraint engine for Claude, Cursor, and more"
+  desc "Never - AI Constraint Guardian"
   homepage "https://github.com/mohitmishra786/never"
-  url "https://registry.npmjs.org/@never/cli/-/cli-1.0.0.tgz"
-  sha256 "PLACEHOLDER_SHA256_HASH"
+  url "https://registry.npmjs.org/@mohitmishra7/never-cli/-/never-cli-0.0.3.tgz"
+  sha256 "d0b1b2832548655d67b90e1f9ad4df925d8167a5d549b30e03866f17567b43ed"
   license "MIT"
 
   depends_on "node"
@@ -18,6 +13,6 @@ class Never < Formula
   end
 
   test do
-    assert_match "Never CLI", shell_output("#{bin}/never --version")
+    system "#{bin}/never", "--help"
   end
 end

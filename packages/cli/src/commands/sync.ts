@@ -6,13 +6,22 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
-import { loadConfig, getLibraryPath, type NeverConfig } from '../utils/config.js';
-import { detectProject, suggestRuleSets, generateStackSummary } from '../utils/detect.js';
-import { loadAllRuleSets, getRulesForSets } from '../engines/parser.js';
-import { writeCategoryMdcFiles } from '../engines/to-mdc.js';
-import { updateClaudeFile } from '../engines/to-claude.js';
-import { updateAgentsFile } from '../engines/to-agents.js';
-import { generateSkillFile } from '../engines/to-skill.js';
+import {
+    loadConfig,
+    getLibraryPath,
+    type NeverConfig,
+    detectProject,
+    suggestRuleSets,
+    generateStackSummary,
+    SyncEngine,
+    RuleRegistry,
+    loadRulesFromLibrary,
+    writeCategoryMdcFiles,
+    updateClaudeFile,
+    updateAgentsFile,
+    generateSkillFile,
+    type RulePack
+} from '@mohitmishra7/never-core';
 
 interface SyncOptions {
     config?: string;
@@ -92,19 +101,23 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
         process.exit(1);
     }
 
-    const allRuleSets = loadAllRuleSets(libraryPath);
+    const allRules = loadRulesFromLibrary(libraryPath);
 
     if (verbose) {
-        console.log(`Found ${allRuleSets.size} rule sets: ${[...allRuleSets.keys()].join(', ')}\n`);
+        const categories = new Set(allRules.map(r => r.id.split('/')[0]));
+        console.log(`Found ${categories.size} rule sets: ${[...categories].join(', ')}\n`);
     }
 
     // Get rules for the configured rule sets
-    const activeRules = getRulesForSets(allRuleSets, config.rules);
+    const activeRules = allRules.filter(rule => {
+        const category = rule.id.split('/')[0];
+        return config.rules.includes(category);
+    });
 
     console.log(`Processing ${activeRules.length} rule files from sets: ${config.rules.join(', ')}\n`);
 
     // Count total rules
-    const totalRules = activeRules.reduce((sum, rule) => sum + rule.rules.length, 0);
+    const totalRules = activeRules.reduce((sum: number, rule: any) => sum + rule.rules.length, 0);
     console.log(`Total individual rules: ${totalRules}\n`);
 
     // Generate outputs for each enabled target

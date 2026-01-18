@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
-import type { ScanResult } from '../schema.js';
+import { detectProject, suggestRuleSets, generateStackSummary, type ProjectInfo, type StackInfo, type ScanResult } from '@mohitmishra7/never-core';
 
 interface ScanOptions {
     json?: boolean;

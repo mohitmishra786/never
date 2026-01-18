@@ -1,6 +1,6 @@
 /**
  * SyncEngine - Orchestrates rule synchronization across all targets
- * Core implementation for @never/core
+ * Core implementation for @mohitmishra7/never-core
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'fs';
@@ -26,16 +26,7 @@ export interface RuleFrontmatter {
     alwaysApply: boolean;
 }
 
-export interface NeverConfig {
-    version: number;
-    rules: string[];
-    targets: {
-        cursor: boolean;
-        claude: boolean;
-        agents: boolean;
-    };
-    autoDetect: boolean;
-}
+import { NeverConfig } from './config.js';
 
 export interface SyncResult {
     target: string;
@@ -103,7 +94,7 @@ function parseRuleFile(filePath: string, category: string): ParsedRule | null {
 /**
  * Load all rules from a library directory
  */
-function loadRulesFromLibrary(libraryPath: string): ParsedRule[] {
+export function loadRulesFromLibrary(libraryPath: string): ParsedRule[] {
     const rules: ParsedRule[] = [];
 
     if (!existsSync(libraryPath)) {

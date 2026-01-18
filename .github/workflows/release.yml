@@ -1,9 +1,11 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to release (e.g. v0.0.2)'
+        required: true
 
 permissions:
   contents: write
@@ -35,6 +37,7 @@ jobs:
   publish-npm:
     needs: build
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     
     steps:
       - name: Checkout
@@ -52,14 +55,20 @@ jobs:
       - name: Build packages
         run: npm run build
 
-      - name: Publish @never/core
+      - name: Publish @mohitmishra7/never-core
         working-directory: packages/core
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish @never/cli
+      - name: Publish @mohitmishra7/never-cli
         working-directory: packages/cli
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @mohitmishra7/never-mcp-server
+        working-directory: packages/mcp-server
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -72,27 +81,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release v${{ steps.version.outputs.VERSION }}
+          name: Release ${{ inputs.version }}
+          tag_name: ${{ inputs.version }}
           body: |
-            ## Never v${{ steps.version.outputs.VERSION }}
+            ## Never ${{ inputs.version }}
             
             ### Installation
             
             **NPM:**
             ```bash
-            npm install -g @never/cli
+            npm install -g @mohitmishra7/never-cli
             ```
             
             **Homebrew:**
             ```bash
-            brew tap mohitmishra786/never
             brew install never
             ```
             
@@ -103,35 +108,6 @@ jobs:
           prerelease: false
           files: |
             Formula/never.rb
+            packages/vscode/never-vscode-*.vsix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-vscode:
-    needs: build
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build packages
-        run: npm run build
-
-      - name: Package VS Code Extension
-        working-directory: packages/vscode
-        run: |
-          npm install -g @vscode/vsce
-          vsce package
-
-      - name: Publish VS Code Extension
-        working-directory: packages/vscode
-        run: vsce publish -p ${{ secrets.VSCE_PAT }}
-        continue-on-error: true

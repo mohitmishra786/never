@@ -6,17 +6,17 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-// Import from @never/core (will be resolved at build time)
+// Import from @mohitmishra7/never-core (will be resolved at build time)
 // For development, we'll use dynamic imports
-let core: typeof import('@never/core') | null = null;
+let core: typeof import('@mohitmishra7/never-core') | null = null;
 
-async function loadCore(): Promise<typeof import('@never/core') | null> {
+async function loadCore(): Promise<typeof import('@mohitmishra7/never-core') | null> {
     if (core) return core;
     try {
-        core = await import('@never/core');
+        core = await import('@mohitmishra7/never-core');
         return core;
     } catch (error) {
-        console.error('Failed to load @never/core:', error);
+        console.error('Failed to load @mohitmishra7/never-core:', error);
         return null;
     }
 }
@@ -143,7 +143,7 @@ async function handleSync(): Promise<void> {
     try {
         const coreModule = await loadCore();
         if (!coreModule) {
-            throw new Error('Failed to load @never/core');
+            throw new Error('Failed to load @mohitmishra7/never-core');
         }
 
         const { SafetyManager, detectProject, suggestRuleSets } = coreModule;
@@ -205,7 +205,7 @@ async function handleRollback(): Promise<void> {
     try {
         const coreModule = await loadCore();
         if (!coreModule) {
-            throw new Error('Failed to load @never/core');
+            throw new Error('Failed to load @mohitmishra7/never-core');
         }
 
         const { SafetyManager } = coreModule;
@@ -287,7 +287,7 @@ async function handlePull(): Promise<void> {
     try {
         const coreModule = await loadCore();
         if (!coreModule) {
-            throw new Error('Failed to load @never/core');
+            throw new Error('Failed to load @mohitmishra7/never-core');
         }
 
         const { LibrarySync } = coreModule;
