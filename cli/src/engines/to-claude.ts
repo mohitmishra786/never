@@ -74,8 +74,18 @@ ${NEVER_SECTION_END}
 }
 
 /**
- * Replace content between markers using indexOf for robust handling.
- * Validates marker positions to handle edge cases properly.
+ * Replace the section between two markers in existing content with new rules content.
+ *
+ * Searches for `startMarker` and then locates `endMarker` after the start to avoid false matches.
+ * If both markers are found and properly ordered, returns the content with the section between
+ * them replaced by a standard "Constraints" block containing `rulesContent`. If markers are
+ * missing or misordered, returns `null`.
+ *
+ * @param existingContent - The original full text to search and modify
+ * @param rulesContent - Markdown content to insert between the markers
+ * @param startMarker - The exact start marker string that begins the replaceable section
+ * @param endMarker - The exact end marker string that ends the replaceable section
+ * @returns The updated content with the marked section replaced, or `null` if markers are not found or invalid
  */
 function replaceMarkerSection(
     existingContent: string,
@@ -107,8 +117,18 @@ ${endMarker}${afterMarker}`;
 }
 
 /**
- * Update existing CLAUDE.md or create new one
- * Returns structured result for testability (especially dry-run mode)
+ * Synchronizes the project's CLAUDE.md with the provided Claude constraints.
+ *
+ * Replaces the section between the NEVER markers if present; if markers are missing or misordered,
+ * appends a new never-rules section to the file. If CLAUDE.md does not exist, creates a new file
+ * containing the generated content. Honors dry-run mode by computing the final content without
+ * writing to disk.
+ *
+ * @param projectPath - Filesystem path to the project directory containing (or to contain) CLAUDE.md
+ * @param rules - Parsed rules used to generate the CLAUDE.md constraints content
+ * @param dryRun - If true, do not write changes to disk; return the computed result instead
+ * @returns An EngineSyncResult with `path` set to the CLAUDE.md path, `content` containing the final
+ * file contents, and `written` set to `true` if the file was written to disk, `false` for dry runs
  */
 export function updateClaudeFile(
     projectPath: string,
