@@ -41,7 +41,9 @@ ${content}
 ${MARKER_END}
 `;
 
-    const newContent = existingContent + markerBlock;
+    // Ensure proper newline separation before marker block
+    const separator = existingContent && !existingContent.endsWith('\n') ? '\n' : '';
+    const newContent = existingContent + separator + markerBlock;
     writeFileSync(filePath, newContent, 'utf-8');
 }
 

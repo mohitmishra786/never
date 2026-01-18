@@ -96,8 +96,8 @@ export class SafetyManager {
         const timestamp = Date.now();
         const relativePath = relative(this.projectPath, filePath);
         
-        // Encode relative path by replacing separators with double underscores
-        const encodedPath = relativePath.replace(/[/\\]/g, '__');
+        // Encode relative path using encodeURIComponent for reversible encoding
+        const encodedPath = encodeURIComponent(relativePath);
         
         const backupPath = join(this.backupDir, `${encodedPath}.${timestamp}.bak`);
 
@@ -135,8 +135,15 @@ export class SafetyManager {
 
             const [, encodedPath, timestampStr] = match;
             
-            // Decode the path by replacing double underscores back to path separator
-            const decodedPath = encodedPath.replace(/__/g, '/');
+            // Decode the path using decodeURIComponent (reversible with encodeURIComponent)
+            let decodedPath: string;
+            try {
+                decodedPath = decodeURIComponent(encodedPath);
+            } catch {
+                // Skip malformed encoded paths
+                continue;
+            }
+            
             const originalName = basename(decodedPath);
 
             // Filter by fileName if provided (match basename only)

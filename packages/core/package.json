@@ -14,7 +14,8 @@
     "scripts": {
         "build": "tsc",
         "clean": "rm -rf dist",
-        "test": "vitest run"
+        "test": "vitest run",
+        "lint": "tsc --noEmit"
     },
     "dependencies": {
         "gray-matter": "^4.0.3",
@@ -38,5 +39,9 @@
     "publishConfig": {
         "access": "public"
     },
+    "files": [
+        "dist",
+        "README.md"
+    ],
     "license": "MIT"
 }

@@ -102,8 +102,9 @@ jobs:
             See [CHANGELOG.md](CHANGELOG.md) for details.
           draft: false
           prerelease: false
+          overwrite_files: true
           files: |
             Formula/never.rb
-            packages/vscode/never-vscode-*.vsix
+            packages/vscode/*.vsix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
