@@ -1,8 +1,8 @@
 class Never < Formula
   desc "Never - AI Constraint Guardian"
   homepage "https://github.com/mohitmishra786/never"
-  url "https://registry.npmjs.org/@mohitmishra7/never-cli/-/never-cli-0.0.4.tgz"
-  sha256 "f3f43fb63d90118b877654c67cb9cca17e97a99f541fec5d039d21dd64625dbd"
+  url "https://registry.npmjs.org/@mohitmishra7/never-cli/-/never-cli-0.0.5.tgz"
+  sha256 "2c99f8960e936f7941cdff2f22ae6aa6339ea769513df11e36239a2a9809c744"
   license "MIT"
 
   depends_on "node"
