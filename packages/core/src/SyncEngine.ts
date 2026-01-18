@@ -115,7 +115,8 @@ export function loadRulesFromLibrary(libraryPath: string): ParsedRule[] {
                     rules.push(parsed);
                 }
             } else if (stat.isDirectory()) {
-                walkDirectory(fullPath, entry);
+                // Preserve the top-level category for nested folders
+                walkDirectory(fullPath, category || dirName);
             }
         }
     };
@@ -214,19 +215,28 @@ export class SyncEngine {
      */
     syncToClaude(rules: ParsedRule[], options: SyncOptions = {}): SyncResult {
         const claudePath = join(this.projectPath, 'CLAUDE.md');
-        const newContent = generateClaudeContent(rules);
+        let filteredRules = rules;
         let skipped = 0;
 
-        // Check for conflicts
+        // Check for conflicts and filter rules
         if (options.detectConflicts && existsSync(claudePath)) {
             const existing = readFileSync(claudePath, 'utf-8');
             const ruleTexts = rules.flatMap(r => r.rules);
-            const { skipped: skippedRules } = this.conflictDetector.filterConflictingRules(
+            const { safe, skipped: skippedRules } = this.conflictDetector.filterConflictingRules(
                 existing,
                 ruleTexts
             );
             skipped = skippedRules.length;
+            
+            // Filter rules to only include safe ones
+            const safeRuleSet = new Set(safe);
+            filteredRules = rules.map(r => ({
+                ...r,
+                rules: r.rules.filter(ruleText => safeRuleSet.has(ruleText))
+            })).filter(r => r.rules.length > 0);
         }
+
+        const newContent = generateClaudeContent(filteredRules);
 
         if (!options.dryRun) {
             // Backup first
@@ -243,7 +253,7 @@ export class SyncEngine {
         return {
             target: 'claude',
             path: claudePath,
-            ruleCount: rules.reduce((sum, r) => sum + r.rules.length, 0),
+            ruleCount: filteredRules.reduce((sum, r) => sum + r.rules.length, 0),
             skipped,
             success: true,
         };
@@ -300,16 +310,24 @@ export class SyncEngine {
      */
     getDiff(rules: ParsedRule[]): { claude?: string; agents?: string } {
         const claudePath = join(this.projectPath, 'CLAUDE.md');
-        const newContent = generateClaudeContent(rules);
+        const agentsPath = join(this.projectPath, 'AGENTS.md');
+        const newClaudeContent = generateClaudeContent(rules);
+        const newAgentsContent = generateClaudeContent(rules); // Reuse same generator for agents
 
         const result: { claude?: string; agents?: string } = {};
 
         if (existsSync(claudePath)) {
-            const diff = this.safetyManager.generateDiff(
-                claudePath,
-                replaceMarkerSection(readFileSync(claudePath, 'utf-8'), newContent)
-            );
+            const existingClaude = readFileSync(claudePath, 'utf-8');
+            const updatedClaude = replaceMarkerSection(existingClaude, newClaudeContent);
+            const diff = this.safetyManager.generateDiff(claudePath, updatedClaude);
             result.claude = this.safetyManager.formatDiff(diff);
+        }
+
+        if (existsSync(agentsPath)) {
+            const existingAgents = readFileSync(agentsPath, 'utf-8');
+            const updatedAgents = replaceMarkerSection(existingAgents, newAgentsContent);
+            const diff = this.safetyManager.generateDiff(agentsPath, updatedAgents);
+            result.agents = this.safetyManager.formatDiff(diff);
         }
 
         return result;

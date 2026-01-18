@@ -155,7 +155,7 @@ export async function lintCommand(options: LintOptions): Promise<void> {
     const configPath = options.config || join(projectPath, '.never', 'config.yaml');
     const verbose = options.verbose || false;
 
-    console.log(chalk.bold('Running Never lint...\\n'));
+    console.log(chalk.bold('Running Never lint...\n'));
 
     // Initialize git
     const git = simpleGit(projectPath);
@@ -188,7 +188,7 @@ export async function lintCommand(options: LintOptions): Promise<void> {
     // Parse the diff
     const diffFiles = parseDiff(diffOutput);
     if (verbose) {
-        console.log(`Found changes in ${diffFiles.length} file(s)\\n`);
+        console.log(`Found changes in ${diffFiles.length} file(s)\n`);
     }
 
     // Load rules
@@ -213,7 +213,7 @@ export async function lintCommand(options: LintOptions): Promise<void> {
     });
 
     if (verbose) {
-        console.log(`Using ${activeRules.length} rule files from sets: ${ruleSets.join(', ')}\\n`);
+        console.log(`Using ${activeRules.length} rule files from sets: ${ruleSets.join(', ')}\n`);
     }
 
     // Check for violations
@@ -230,7 +230,7 @@ export async function lintCommand(options: LintOptions): Promise<void> {
         return;
     }
 
-    console.log(chalk.yellow(`Found ${violations.length} potential violation(s):\\n`));
+    console.log(chalk.yellow(`Found ${violations.length} potential violation(s):\n`));
 
     // Group by file
     const byFile = new Map<string, LintViolation[]>();

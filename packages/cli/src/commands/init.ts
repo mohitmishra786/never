@@ -170,7 +170,7 @@ export async function initCommand(): Promise<void> {
         // Show next steps
         p.note(
             `Run ${chalk.cyan('never sync')} to sync your first rules\n` +
-            `Run ${chalk.cyan('never pull')} to fetch latest rules from repository\n` +
+            `Run ${chalk.cyan('never list')} to view active rule sets\n` +
             `Run ${chalk.cyan('never lint')} to check your code against active rules`,
             'Next Steps'
         );

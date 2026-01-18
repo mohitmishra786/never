@@ -148,9 +148,6 @@ async function handleSync(): Promise<void> {
 
         const { SafetyManager, detectProject, suggestRuleSets } = coreModule;
 
-        // Create safety manager for backups
-        const safetyManager = new SafetyManager(projectPath);
-
         // Detect project and suggest rules
         const projectInfo = detectProject(projectPath);
         const suggestedRules = suggestRuleSets(projectInfo);
@@ -158,12 +155,12 @@ async function handleSync(): Promise<void> {
         outputChannel.appendLine(`Detected stacks: ${projectInfo.stacks.map(s => s.name).join(', ')}`);
         outputChannel.appendLine(`Suggested rules: ${suggestedRules.join(', ')}`);
 
-        // TODO: Integrate with full sync engine when imports are resolved
-        // For now, show what would be synced
+        // NOTE: This is a preview/detection feature, not a full sync
+        // Full sync integration with SyncEngine is pending
 
         updateStatusBar('success');
 
-        const message = `Never: Synced ${suggestedRules.length} rule sets for ${projectInfo.stacks.length} stacks`;
+        const message = `Never: Detected ${suggestedRules.length} rule sets for ${projectInfo.stacks.length} stacks (preview - full sync not implemented yet)`;
         const action = await vscode.window.showInformationMessage(message, 'View Output');
 
         if (action === 'View Output') {
@@ -242,7 +239,7 @@ async function handleRollback(): Promise<void> {
 
         if (confirm !== 'Restore') return;
 
-        // Perform rollback
+        // Perform rollback - filePath now contains the full relative path
         const targetPath = path.join(projectPath, selected.backup.filePath);
         const success = safetyManager.rollback(targetPath, selected.backup.backupPath);
 

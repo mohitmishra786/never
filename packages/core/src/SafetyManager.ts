@@ -3,8 +3,9 @@
  * Ensures files are never corrupted during sync operations
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, renameSync, readdirSync, statSync } from 'fs';
-import { join, dirname, basename } from 'path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'fs';
+import { join, dirname, basename, relative } from 'path';
+import { createHash } from 'crypto';
 
 export interface BackupInfo {
     filePath: string;
@@ -30,8 +31,10 @@ export interface FileDiff {
  */
 export class SafetyManager {
     private backupDir: string;
+    private projectPath: string;
 
     constructor(projectPath: string) {
+        this.projectPath = projectPath;
         this.backupDir = join(projectPath, '.never', 'backups');
     }
 
@@ -61,12 +64,27 @@ export class SafetyManager {
         writeFileSync(tmpPath, content, 'utf-8');
 
         // Atomic rename (POSIX guarantees atomic rename within same filesystem)
-        renameSync(tmpPath, filePath);
+        // On Windows, handle EEXIST/EPERM errors by removing target first
+        try {
+            renameSync(tmpPath, filePath);
+        } catch (error: any) {
+            if (error.code === 'EEXIST' || error.code === 'EPERM') {
+                try {
+                    unlinkSync(filePath);
+                    renameSync(tmpPath, filePath);
+                } catch {
+                    throw error;
+                }
+            } else {
+                throw error;
+            }
+        }
     }
 
     /**
      * Create a backup of a file before modifying it
      * Returns the backup file path
+     * Encodes relative path into backup filename to preserve directory structure
      */
     createBackup(filePath: string): string | null {
         if (!existsSync(filePath)) {
@@ -76,8 +94,12 @@ export class SafetyManager {
         this.ensureBackupDir();
 
         const timestamp = Date.now();
-        const fileName = basename(filePath);
-        const backupPath = join(this.backupDir, `${fileName}.${timestamp}.bak`);
+        const relativePath = relative(this.projectPath, filePath);
+        
+        // Encode relative path by replacing separators with double underscores
+        const encodedPath = relativePath.replace(/[/\\]/g, '__');
+        
+        const backupPath = join(this.backupDir, `${encodedPath}.${timestamp}.bak`);
 
         copyFileSync(filePath, backupPath);
 
@@ -107,20 +129,24 @@ export class SafetyManager {
         for (const entry of entries) {
             if (!entry.endsWith('.bak')) continue;
 
-            // Parse filename: FILENAME.TIMESTAMP.bak
+            // Parse filename: ENCODEDPATH.TIMESTAMP.bak
             const match = entry.match(/^(.+)\.(\d+)\.bak$/);
             if (!match) continue;
 
-            const [, originalName, timestampStr] = match;
+            const [, encodedPath, timestampStr] = match;
+            
+            // Decode the path by replacing double underscores back to path separator
+            const decodedPath = encodedPath.replace(/__/g, '/');
+            const originalName = basename(decodedPath);
 
-            // Filter by fileName if provided
+            // Filter by fileName if provided (match basename only)
             if (fileName && originalName !== fileName) continue;
 
             const backupPath = join(this.backupDir, entry);
             const stat = statSync(backupPath);
 
             backups.push({
-                filePath: originalName,
+                filePath: decodedPath, // Store the full relative path
                 backupPath,
                 timestamp: parseInt(timestampStr, 10),
                 size: stat.size,
@@ -236,7 +262,6 @@ export class SafetyManager {
         let deleted = 0;
 
         for (let i = keepCount; i < backups.length; i++) {
-            const { unlinkSync } = require('fs');
             try {
                 unlinkSync(backups[i].backupPath);
                 deleted++;
