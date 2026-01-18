@@ -13,12 +13,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "declaration": true,
-        "sourceMap": true,
-        "paths": {
-            "@mohitmishra7/never-core": [
-                "../core/src/index.ts"
-            ]
-        }
+        "sourceMap": true
     },
     "include": [
         "src/**/*"
