@@ -4,7 +4,15 @@ Thanks for considering a contribution. The project benefits most from two types 
 
 ## Adding New Rules
 
-The library lives in `library/`. Each markdown file follows a specific format that the parser understands.
+The rule library lives in `library/`. To add new rules:
+
+1. Choose the appropriate category directory:
+   - `library/core/` - Universal rules that apply to all projects
+   - `library/languages/` - Language-specific rules (TypeScript, Python, etc.)
+   - `library/web/` - Web framework rules (React, Vue, etc.)
+   - `library/security/` - Security-focused constraints
+
+2. Create a new `.md` file with frontmatter and Never statements:
 
 ```markdown
 ---
@@ -23,6 +31,19 @@ alwaysApply: false
 - Never do the thing that causes problems
 - Never do the other thing that causes different problems
 ```
+
+3. Test your rules locally:
+```bash
+# From repository root
+npm run build
+
+# Test with a project
+cd /path/to/test/project
+never init
+never sync
+```
+
+4. Submit a pull request with your new rules
 
 ### Frontmatter Fields
 

@@ -143,6 +143,13 @@ function generateClaudeContent(rules: ParsedRule[]): string {
 }
 
 /**
+ * Check if content has markers
+ */
+function hasMarkers(content: string): boolean {
+    return content.includes(MARKER_START) && content.includes(MARKER_END);
+}
+
+/**
  * Replace or insert content between markers
  */
 function replaceMarkerSection(content: string, newSection: string): string {
@@ -211,12 +218,43 @@ export class SyncEngine {
     }
 
     /**
-     * Sync rules to CLAUDE.md
+     * Check if a file needs markers and return status
+     */
+    checkMarkers(filePath: string): { exists: boolean; hasMarkers: boolean; needsPrompt: boolean } {
+        if (!existsSync(filePath)) {
+            return { exists: false, hasMarkers: false, needsPrompt: false };
+        }
+
+        const content = readFileSync(filePath, 'utf-8');
+        const markersPresent = hasMarkers(content);
+
+        return {
+            exists: true,
+            hasMarkers: markersPresent,
+            needsPrompt: !markersPresent, // Prompt if file exists but lacks markers
+        };
+    }
+
+    /**
+     * Sync rules to CLAUDE.md with auto-marker feature
      */
     syncToClaude(rules: ParsedRule[], options: SyncOptions = {}): SyncResult {
         const claudePath = join(this.projectPath, 'CLAUDE.md');
         let filteredRules = rules;
         let skipped = 0;
+
+        // Check marker status
+        const markerStatus = this.checkMarkers(claudePath);
+        
+        // If file exists but lacks markers, indicate that user needs to be prompted
+        // This will be handled by the CLI or VS Code extension
+        if (markerStatus.needsPrompt && !options.dryRun) {
+            // For programmatic use, automatically append markers
+            // CLI/VS Code will handle user prompting separately
+            if (options.verbose) {
+                console.warn(`Markers not found in ${claudePath}. They will be appended.`);
+            }
+        }
 
         // Check for conflicts and filter rules
         if (options.detectConflicts && existsSync(claudePath)) {
@@ -340,3 +378,8 @@ export class SyncEngine {
 export function createSyncEngine(projectPath: string, libraryPath: string): SyncEngine {
     return new SyncEngine(projectPath, libraryPath);
 }
+
+/**
+ * Export hasMarkers for external use
+ */
+export { hasMarkers };

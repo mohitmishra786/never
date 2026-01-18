@@ -44,6 +44,15 @@ export interface ProjectInfo {
     stacks: StackInfo[];
 }
 
+export interface DetectOptions {
+    maxDepth?: number; // Maximum directory depth to scan (default: 3)
+    useCache?: boolean; // Use cached results if available (default: true)
+}
+
+// Cache for detection results
+const detectionCache = new Map<string, { result: ProjectInfo; timestamp: number; configHash: string }>();
+const CACHE_TTL = 60000; // 1 minute cache TTL
+
 export interface StackInfo {
     name: string;
     type: 'language' | 'framework' | 'tool' | 'security';
@@ -92,10 +101,74 @@ function shouldIgnore(ig: Ignore, projectPath: string, filePath: string): boolea
 }
 
 /**
- * Comprehensive project detection with deep inspection
- * Now respects .gitignore to avoid scanning ignored directories
+ * Generate a hash for config files to detect changes
  */
-export function detectProject(projectPath: string = process.cwd()): ProjectInfo {
+function getConfigHash(projectPath: string): string {
+    const configFiles = [
+        'package.json',
+        'tsconfig.json',
+        'requirements.txt',
+        'pyproject.toml',
+        '.never/config.yaml'
+    ];
+    
+    const mtimes: number[] = [];
+    for (const file of configFiles) {
+        const filePath = join(projectPath, file);
+        if (existsSync(filePath)) {
+            try {
+                const stat = statSync(filePath);
+                mtimes.push(stat.mtimeMs);
+            } catch {
+                // Ignore stat errors
+            }
+        }
+    }
+    
+    return mtimes.join(':');
+}
+
+/**
+ * Check if cached result is still valid
+ */
+function getCachedResult(projectPath: string): ProjectInfo | null {
+    const cached = detectionCache.get(projectPath);
+    if (!cached) return null;
+    
+    const now = Date.now();
+    const age = now - cached.timestamp;
+    
+    // Check if cache is expired
+    if (age > CACHE_TTL) {
+        detectionCache.delete(projectPath);
+        return null;
+    }
+    
+    // Check if config files have changed
+    const currentHash = getConfigHash(projectPath);
+    if (currentHash !== cached.configHash) {
+        detectionCache.delete(projectPath);
+        return null;
+    }
+    
+    return cached.result;
+}
+
+/**
+ * Comprehensive project detection with deep inspection
+ * Now respects .gitignore and uses depth-limited scanning for performance
+ */
+export function detectProject(projectPath: string = process.cwd(), options: DetectOptions = {}): ProjectInfo {
+    const maxDepth = options.maxDepth ?? 3; // Default to 3 levels deep
+    const useCache = options.useCache ?? true;
+    
+    // Check cache first
+    if (useCache) {
+        const cached = getCachedResult(projectPath);
+        if (cached) {
+            return cached;
+        }
+    }
     const info: ProjectInfo = {
         hasTypeScript: false,
         hasPython: false,
@@ -190,13 +263,15 @@ export function detectProject(projectPath: string = process.cwd()): ProjectInfo 
     }
 
     // Deep Inspection: Check for src/components (Frontend rules)
+    // Only check up to maxDepth to avoid performance issues in large repos
     const componentPaths = [
         join(projectPath, 'src', 'components'),
         join(projectPath, 'app', 'components'),
         join(projectPath, 'components'),
     ];
     for (const compPath of componentPaths) {
-        if (existsSync(compPath) && !shouldIgnore(ig, projectPath, compPath)) {
+        const depth = compPath.split('/').length - projectPath.split('/').length;
+        if (depth <= maxDepth && existsSync(compPath) && !shouldIgnore(ig, projectPath, compPath)) {
             info.hasComponents = true;
             if (!info.hasReact && !info.hasVue && !info.hasAngular) {
                 info.stacks.push({ name: 'Frontend Components', type: 'framework', ruleCount: 12 });
@@ -213,23 +288,36 @@ export function detectProject(projectPath: string = process.cwd()): ProjectInfo 
         join(projectPath, 'spec'),
     ];
     for (const testPath of testPaths) {
-        if (existsSync(testPath) && !shouldIgnore(ig, projectPath, testPath)) {
+        const depth = testPath.split('/').length - projectPath.split('/').length;
+        if (depth <= maxDepth && existsSync(testPath) && !shouldIgnore(ig, projectPath, testPath)) {
             info.hasTests = true;
             info.stacks.push({ name: 'Testing', type: 'tool', ruleCount: 6 });
             break;
         }
     }
 
-    // Check for Docker
+    // Check for Docker (root level files)
     if (existsSync(join(projectPath, 'Dockerfile')) || existsSync(join(projectPath, 'docker-compose.yml'))) {
         info.hasDocker = true;
         info.stacks.push({ name: 'Docker', type: 'tool', ruleCount: 4 });
     }
 
-    // Check for CI/CD
-    if (existsSync(join(projectPath, '.github', 'workflows')) || existsSync(join(projectPath, '.gitlab-ci.yml'))) {
+    // Check for CI/CD (root and near-root level dirs/files)
+    const githubWorkflows = join(projectPath, '.github', 'workflows');
+    const gitlabCi = join(projectPath, '.gitlab-ci.yml');
+    
+    if ((existsSync(githubWorkflows) && !shouldIgnore(ig, projectPath, githubWorkflows)) || existsSync(gitlabCi)) {
         info.hasCI = true;
         info.stacks.push({ name: 'CI/CD', type: 'tool', ruleCount: 5 });
+    }
+
+    // Cache the result if caching is enabled
+    if (useCache) {
+        detectionCache.set(projectPath, {
+            result: info,
+            timestamp: Date.now(),
+            configHash: getConfigHash(projectPath)
+        });
     }
 
     return info;

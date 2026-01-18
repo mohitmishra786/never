@@ -239,7 +239,7 @@ export class RuleRegistry {
     }
 
     /**
-     * Validate regex pattern for safety (basic ReDoS protection)
+     * Validate regex pattern for safety (ReDoS protection using safe-regex2)
      */
     private isRegexSafe(pattern: string): boolean {
         // Reject patterns that are too long
@@ -247,16 +247,28 @@ export class RuleRegistry {
             return false;
         }
         
-        // Reject patterns with excessive nesting or repetition
-        const dangerousPatterns = [
-            /(\(.*\+.*\)){3,}/, // Nested repetitions
-            /(\*|\+|\{[0-9,]+\}){3,}/, // Multiple consecutive quantifiers
-            /(.+\|.+){5,}/, // Excessive alternations
-        ];
-        
-        for (const dangerous of dangerousPatterns) {
-            if (dangerous.test(pattern)) {
+        // Use safe-regex2 for comprehensive ReDoS detection
+        try {
+            // Dynamic require to handle both ESM and CommonJS
+            const safeRegex = require('safe-regex2');
+            const isSafe = typeof safeRegex === 'function' ? safeRegex : safeRegex.default;
+            
+            // Check with safe-regex2 (limit defaults to 25 repetitions)
+            if (!isSafe(pattern, { limit: 25 })) {
                 return false;
+            }
+        } catch (error) {
+            // If safe-regex2 is not available, fall back to basic checks
+            const dangerousPatterns = [
+                /(\(.*\+.*\)){3,}/, // Nested repetitions
+                /(\*|\+|\{[0-9,]+\}){3,}/, // Multiple consecutive quantifiers
+                /(.+\|.+){5,}/, // Excessive alternations
+            ];
+            
+            for (const dangerous of dangerousPatterns) {
+                if (dangerous.test(pattern)) {
+                    return false;
+                }
             }
         }
         

@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { 
-    SafetyManager, 
+    SafetyManager,
     detectProject, 
     suggestRuleSets,
     loadConfig,
@@ -31,6 +31,54 @@ let debounceTimer: NodeJS.Timeout | null = null;
 const DEBOUNCE_DELAY = 2000;
 
 /**
+ * Check for extension updates
+ */
+async function checkForUpdates(context: vscode.ExtensionContext): Promise<void> {
+    try {
+        const currentVersion = context.extension?.packageJSON.version || '0.0.0';
+        
+        // Fetch latest version from NPM registry
+        const response = await fetch('https://registry.npmjs.org/@mohitmishra7/never-cli/latest');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const latestVersion = data.version;
+        
+        // Compare versions (simple string comparison for major.minor.patch)
+        if (latestVersion && latestVersion !== currentVersion) {
+            const compare = compareVersions(currentVersion, latestVersion);
+            if (compare < 0) {
+                // Show subtle update notification
+                statusBarItem.text = '$(cloud-download) Never (Update Available)';
+                statusBarItem.tooltip = `Never v${latestVersion} is available. Current: v${currentVersion}`;
+                statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+            }
+        }
+    } catch (error) {
+        // Silently fail - don't bother user with update check errors
+        outputChannel.appendLine(`Update check failed: ${error}`);
+    }
+}
+
+/**
+ * Compare two semantic versions
+ * Returns: -1 if a < b, 0 if equal, 1 if a > b
+ */
+function compareVersions(a: string, b: string): number {
+    const aParts = a.split('.').map(n => parseInt(n, 10));
+    const bParts = b.split('.').map(n => parseInt(n, 10));
+    
+    for (let i = 0; i < 3; i++) {
+        const aVal = aParts[i] || 0;
+        const bVal = bParts[i] || 0;
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+    }
+    
+    return 0;
+}
+
+/**
  * Extension activation
  */
 export function activate(context: vscode.ExtensionContext) {
@@ -49,6 +97,11 @@ export function activate(context: vscode.ExtensionContext) {
     if (config.get('showStatusBar', true)) {
         statusBarItem.show();
     }
+
+    // Check for updates (async, don't block activation)
+    checkForUpdates(context).catch(() => {
+        // Ignore errors
+    });
 
     // Register commands
     context.subscriptions.push(
@@ -262,18 +315,28 @@ async function handleSync(): Promise<void> {
     } catch (error) {
         updateStatusBar('error');
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        outputChannel.appendLine(`Error: ${errorMessage}`);
+        
+        // Always log to output channel for debugging
+        outputChannel.appendLine(`[ERROR] Sync failed: ${errorMessage}`);
+        if (error instanceof Error && error.stack) {
+            outputChannel.appendLine(`Stack trace:\n${error.stack}`);
+        }
 
         const choice = await vscode.window.showErrorMessage(
             `Never sync failed: ${errorMessage}`,
             'View Output',
-            'Check Health'
+            'Check Health',
+            'Copy Error'
         );
 
         if (choice === 'View Output') {
             outputChannel.show();
         } else if (choice === 'Check Health') {
             await handleDoctor();
+        } else if (choice === 'Copy Error') {
+            const errorDetails = `Never Sync Error:\n${errorMessage}\n\nVersion: ${vscode.extensions.getExtension('mohitmishra.never-vscode')?.packageJSON.version}\nWorkspace: ${vscode.workspace.workspaceFolders?.[0]?.uri.fsPath}\n\nPlease report this at: https://github.com/mohitmishra786/never/issues`;
+            await vscode.env.clipboard.writeText(errorDetails);
+            vscode.window.showInformationMessage('Error details copied to clipboard');
         }
     }
 }
