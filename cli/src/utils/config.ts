@@ -83,8 +83,10 @@ export function createDefaultConfig(rules: string[]): NeverConfig {
 }
 
 /**
- * Get the library path relative to this module.
- * Uses fileURLToPath for cross-platform compatibility.
+ * Locate the project's `library` directory by checking common candidate locations relative to this module and the current working directory.
+ *
+ * @returns The filesystem path to the found `library` directory.
+ * @throws Error if none of the expected library locations exist; the thrown error message lists the candidate paths.
  */
 export function getLibraryPath(): string {
     // Use fileURLToPath for proper cross-platform path handling

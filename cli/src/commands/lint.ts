@@ -27,7 +27,10 @@ interface DiffFile {
 }
 
 /**
- * Parse git diff output to extract changed files and lines
+ * Parse raw git diff text and extract per-file added lines with their line numbers.
+ *
+ * @param diffOutput - Raw output from `git diff` (or `git diff --cached`)
+ * @returns An array of DiffFile entries for files that contain additions; each entry includes `file`, `additions` (the added line texts), and `lineNumbers` (the 1-based line numbers in the new file)
  */
 function parseDiff(diffOutput: string): DiffFile[] {
     const files: DiffFile[] = [];
@@ -74,7 +77,13 @@ function parseDiff(diffOutput: string): DiffFile[] {
 }
 
 /**
- * Check if a rule applies to a given file path
+ * Determines whether a parsed rule should be considered for a given file path based on the rule's frontmatter.
+ *
+ * Checks the `alwaysApply` flag and the `globs` value (supports comma-separated patterns and the default `**/*`) to decide applicability.
+ *
+ * @param rule - The parsed rule whose frontmatter may contain `alwaysApply` and `globs`
+ * @param filePath - The file path to test against the rule's glob patterns
+ * @returns `true` if the rule applies to `filePath`, `false` otherwise
  */
 function ruleAppliesToFile(rule: ParsedRule, filePath: string): boolean {
     const globs = rule.frontmatter.globs;
@@ -87,7 +96,14 @@ function ruleAppliesToFile(rule: ParsedRule, filePath: string): boolean {
 }
 
 /**
- * Check for violations in the diff
+ * Identify lint violations in diff additions based on active rules.
+ *
+ * Scans each added line in the provided diff files for patterns referenced by each rule's `rules` (the "never" entries).
+ * Records one LintViolation per matching rule per line containing the file path, line number, rule text, rule id, severity, and message.
+ *
+ * @param diffFiles - List of changed files with their added lines and corresponding line numbers
+ * @param rules - Parsed rule definitions to evaluate against the diff additions
+ * @returns An array of `LintViolation` objects representing each detected violation
  */
 function checkViolations(
     diffFiles: DiffFile[],
@@ -144,7 +160,16 @@ function checkViolations(
 }
 
 /**
- * Main lint command handler
+ * Run linting of git changes against configured rule sets and report any violations.
+ *
+ * Loads the git diff (staged changes when requested), parses changed lines, loads the active rule sets
+ * (defaults to `core` or uses the project's .never config), and evaluates the diff for rule violations.
+ * Results are printed as human-readable grouped output by default or as JSON when `options.json` is set.
+ * The command may terminate the process with a non-zero exit code on errors (e.g., not a git repo, missing rule
+ * library, failure to read diff) or when violations are found (useful for CI).
+ *
+ * @param options - Configuration for the lint run. Recognized fields: `staged` (use staged/--cached diff),
+ *   `json` (emit JSON output), `verbose` (print extra diagnostics), and `config` (path to a .never config file).
  */
 export async function lintCommand(options: LintOptions): Promise<void> {
     const projectPath = process.cwd();

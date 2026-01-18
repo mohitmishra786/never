@@ -18,6 +18,16 @@ interface SyncOptions {
     dryRun?: boolean;
 }
 
+/**
+ * Synchronizes Never rule sets for the current project and generates configured output files (Cursor .mdc, CLAUDE.md, AGENTS.md).
+ *
+ * Loads configuration (from the provided path or via auto-detection), determines active rule sets, and writes or updates the configured targets. When `dryRun` is true, no files are written; when configuration or the rule library cannot be loaded, the process exits with code 1.
+ *
+ * @param options - Synchronization options:
+ *   - config: Optional path to a Never config file; when omitted the default is `.never/config.yaml` in the current working directory.
+ *   - verbose: When true, emit additional diagnostic output.
+ *   - dryRun: When true, perform all steps without writing files.
+ */
 export async function syncCommand(options: SyncOptions): Promise<void> {
     const projectPath = process.cwd();
     const configPath = options.config || join(projectPath, '.never', 'config.yaml');
