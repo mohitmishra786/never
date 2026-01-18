@@ -115,17 +115,17 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     // CLAUDE.md
     if (config.targets.claude) {
         console.log('Generating CLAUDE.md...');
-        const claudePath = updateClaudeFile(projectPath, activeRules, dryRun);
-        generatedFiles.push(claudePath);
-        console.log(`  Updated: ${claudePath}`);
+        const claudeResult = updateClaudeFile(projectPath, activeRules, dryRun);
+        generatedFiles.push(claudeResult.path);
+        console.log(`  Updated: ${claudeResult.path}`);
     }
 
     // AGENTS.md
     if (config.targets.agents) {
         console.log('Generating AGENTS.md...');
-        const agentsPath = updateAgentsFile(projectPath, activeRules, dryRun);
-        generatedFiles.push(agentsPath);
-        console.log(`  Updated: ${agentsPath}`);
+        const agentsResult = updateAgentsFile(projectPath, activeRules, dryRun);
+        generatedFiles.push(agentsResult.path);
+        console.log(`  Updated: ${agentsResult.path}`);
     }
 
     console.log(`\nSync complete. Generated ${generatedFiles.length} files.`);
