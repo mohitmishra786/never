@@ -62,7 +62,7 @@ export async function initCommand(): Promise<void> {
     // Show detected stacks
     if (projectInfo.stacks.length > 0) {
         p.note(
-            projectInfo.stacks.map(s => `• ${s.name} (${s.ruleCount} rules)`).join('\n'),
+            projectInfo.stacks.map((s: { name: string; ruleCount: number }) => `• ${s.name} (${s.ruleCount} rules)`).join('\n'),
             '🔍 Detected Stacks'
         );
     } else {

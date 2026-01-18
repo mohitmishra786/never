@@ -114,12 +114,12 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     const allRules = loadRulesFromLibrary(libraryPath);
 
     if (verbose) {
-        const categories = new Set(allRules.map(r => r.id.split('/')[0]));
+        const categories = new Set(allRules.map((r: any) => r.id.split('/')[0]));
         console.log(`Found ${categories.size} rule sets: ${[...categories].join(', ')}\n`);
     }
 
     // Get rules for the configured rule sets
-    const activeRules = allRules.filter(rule => {
+    const activeRules = allRules.filter((rule: any) => {
         const category = rule.id.split('/')[0];
         return config.rules.includes(category);
     });
