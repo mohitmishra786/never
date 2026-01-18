@@ -24,22 +24,19 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-          cache-dependency-path: cli/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: cli
         run: npm ci
 
       - name: Build TypeScript
-        working-directory: cli
         run: npm run build
 
       - name: Run unit tests
-        working-directory: cli
-        run: npm test
+        run: npm run test
 
       - name: Test CLI commands
-        working-directory: cli
+        working-directory: packages/cli
         run: |
           # Link the CLI globally
           npm link
@@ -76,12 +73,11 @@ jobs:
         with:
           node-version: 20.x
           cache: 'npm'
-          cache-dependency-path: cli/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: cli
         run: npm ci
 
       - name: Check TypeScript compilation
-        working-directory: cli
+        working-directory: packages/cli
         run: npm run build
