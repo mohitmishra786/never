@@ -1,23 +1,22 @@
 {
     "name": "@mohitmishra7/never-mcp-server",
-    "version": "0.0.4",
-    "description": "MCP Server for Never - provides AI constraints via Model Context Protocol",
+    "version": "0.0.6",
+    "description": "MCP Server for the Never Constraint Engine",
     "type": "module",
     "main": "./dist/index.js",
     "bin": {
-        "never-mcp": "./dist/index.js"
+        "never-mcp-server": "./dist/index.js"
     },
     "scripts": {
         "build": "tsc",
-        "clean": "rm -rf dist",
         "start": "node dist/index.js",
-        "test": "vitest run"
+        "dev": "tsx src/index.ts"
     },
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.0.0",
-        "@mohitmishra7/never-core": "*",
+        "@modelcontextprotocol/sdk": "^0.6.0",
+        "@mohitmishra7/never-core": "0.0.6",
         "gray-matter": "^4.0.3",
-        "minimatch": "^10.0.1"
+        "minimatch": "^9.0.5"
     },
     "devDependencies": {
         "@types/node": "^20.17.9",

@@ -13,7 +13,8 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "declaration": true,
-        "sourceMap": true
+        "sourceMap": true,
+        "composite": true
     },
     "include": [
         "src/**/*"
@@ -22,5 +23,10 @@
         "node_modules",
         "dist",
         "**/*.test.ts"
+    ],
+    "references": [
+        {
+            "path": "../core"
+        }
     ]
 }

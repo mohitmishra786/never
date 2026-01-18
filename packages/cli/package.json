@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-cli",
-    "version": "0.0.4",
+    "version": "0.0.6",
     "description": "AI constraint CLI for Claude, Cursor, and more",
     "type": "module",
     "main": "./dist/index.js",
@@ -8,8 +8,8 @@
         "never": "./dist/index.js"
     },
     "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist",
+        "build": "tsc && rm -rf library && cp -r ../library .",
+        "clean": "rm -rf dist library",
         "start": "node dist/index.js",
         "dev": "tsx src/index.ts",
         "test": "vitest run",
@@ -17,11 +17,11 @@
     },
     "dependencies": {
         "@clack/prompts": "^0.7.0",
-        "@mohitmishra7/never-core": "0.0.4",
+        "@mohitmishra7/never-core": "0.0.6",
         "chalk": "^5.3.0",
         "commander": "^12.1.0",
         "gray-matter": "^4.0.3",
-        "minimatch": "^10.1.1",
+        "minimatch": "^9.0.5",
         "simple-git": "^3.30.0",
         "yaml": "^2.6.1"
     },
@@ -33,6 +33,7 @@
     },
     "files": [
         "dist",
+        "library",
         "README.md"
     ],
     "engines": {

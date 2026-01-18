@@ -21,7 +21,7 @@ function loadIgnoreModule(): (options?: any) => Ignore {
         // Fallback if ignore is not available
         console.warn('ignore package not available, .gitignore will not be respected');
         return () => ({
-            add: function(this: Ignore) { return this; },
+            add: function (this: Ignore) { return this; },
             ignores: () => false
         }) as Ignore;
     }
@@ -72,7 +72,7 @@ export interface StackInfo {
 function loadGitignore(projectPath: string): Ignore {
     const ignore = loadIgnoreModule();
     const ig = ignore();
-    
+
     // Always ignore common directories
     ig.add([
         'node_modules/',
@@ -118,7 +118,7 @@ function getConfigHash(projectPath: string): string {
         'pyproject.toml',
         '.never/config.yaml'
     ];
-    
+
     const mtimes: number[] = [];
     for (const file of configFiles) {
         const filePath = join(projectPath, file);
@@ -131,7 +131,7 @@ function getConfigHash(projectPath: string): string {
             }
         }
     }
-    
+
     return mtimes.join(':');
 }
 
@@ -141,23 +141,23 @@ function getConfigHash(projectPath: string): string {
 function getCachedResult(projectPath: string): ProjectInfo | null {
     const cached = detectionCache.get(projectPath);
     if (!cached) return null;
-    
+
     const now = Date.now();
     const age = now - cached.timestamp;
-    
+
     // Check if cache is expired
     if (age > CACHE_TTL) {
         detectionCache.delete(projectPath);
         return null;
     }
-    
+
     // Check if config files have changed
     const currentHash = getConfigHash(projectPath);
     if (currentHash !== cached.configHash) {
         detectionCache.delete(projectPath);
         return null;
     }
-    
+
     return cached.result;
 }
 
@@ -168,7 +168,7 @@ function getCachedResult(projectPath: string): ProjectInfo | null {
 export function detectProject(projectPath: string = process.cwd(), options: DetectOptions = {}): ProjectInfo {
     const maxDepth = options.maxDepth ?? 3; // Default to 3 levels deep
     const useCache = options.useCache ?? true;
-    
+
     // Check cache first
     if (useCache) {
         const cached = getCachedResult(projectPath);
@@ -280,7 +280,10 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
         // Calculate depth using platform-aware path operations
         const relPath = relative(projectPath, compPath);
         const depth = relPath.split(sep).length;
-        
+
+        // Debug log
+        console.log(`Checking ${compPath} (rel: ${relPath}), depth: ${depth}, exists: ${existsSync(compPath)}, ignored: ${shouldIgnore(ig, projectPath, compPath)}`);
+
         if (depth <= maxDepth && existsSync(compPath) && !shouldIgnore(ig, projectPath, compPath)) {
             info.hasComponents = true;
             if (!info.hasReact && !info.hasVue && !info.hasAngular) {
@@ -301,7 +304,7 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
         // Calculate depth using platform-aware path operations
         const relPath = relative(projectPath, testPath);
         const depth = relPath.split(sep).length;
-        
+
         if (depth <= maxDepth && existsSync(testPath) && !shouldIgnore(ig, projectPath, testPath)) {
             info.hasTests = true;
             info.stacks.push({ name: 'Testing', type: 'tool', ruleCount: 6 });
@@ -318,7 +321,7 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
     // Check for CI/CD (root and near-root level dirs/files)
     const githubWorkflows = join(projectPath, '.github', 'workflows');
     const gitlabCi = join(projectPath, '.gitlab-ci.yml');
-    
+
     if ((existsSync(githubWorkflows) && !shouldIgnore(ig, projectPath, githubWorkflows)) || existsSync(gitlabCi)) {
         info.hasCI = true;
         info.stacks.push({ name: 'CI/CD', type: 'tool', ruleCount: 5 });
@@ -340,7 +343,7 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
  * Suggest rule sets based on detected project info
  */
 export function suggestRuleSets(info: ProjectInfo): string[] {
-    const rules: string[] = ['core']; // Always include core rules
+    const rules: string[] = ['core', 'hygiene']; // Always include core and hygiene rules
 
     if (info.hasTypeScript || info.hasNode) {
         rules.push('typescript');

@@ -4,7 +4,8 @@
  */
 
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import chalk from 'chalk';
 import {
     loadConfig,
@@ -52,7 +53,7 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     // Load configuration
     let config: NeverConfig;
     if (existsSync(configPath)) {
-        const loadedConfig = loadConfig(configPath);
+        const loadedConfig = loadConfig(projectPath);
         if (!loadedConfig) {
             console.error(chalk.red('Failed to load configuration. Run `never init` first.'));
             process.exit(1);
@@ -97,7 +98,10 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     console.log();
 
     // Load rule library
-    const libraryPath = getLibraryPath();
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const bundledPath = join(__dirname, '..', '..', 'library'); // Resolves to package root/library
+    const libraryPath = getLibraryPath(bundledPath);
     if (verbose) {
         console.log(`Loading rules from: ${libraryPath}`);
     }
@@ -110,12 +114,12 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
     const allRules = loadRulesFromLibrary(libraryPath);
 
     if (verbose) {
-        const categories = new Set(allRules.map(r => r.id.split('/')[0]));
+        const categories = new Set(allRules.map((r: any) => r.id.split('/')[0]));
         console.log(`Found ${categories.size} rule sets: ${[...categories].join(', ')}\n`);
     }
 
     // Get rules for the configured rule sets
-    const activeRules = allRules.filter(rule => {
+    const activeRules = allRules.filter((rule: any) => {
         const category = rule.id.split('/')[0];
         return config.rules.includes(category);
     });
@@ -170,4 +174,3 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
         }
     }
 }
-

@@ -86,7 +86,7 @@ function ruleAppliesToFile(rule: ParsedRule, filePath: string): boolean {
     if (!globs || globs === '**/*') return true;
 
     // Handle comma-separated globs
-    const patterns = globs.split(',').map(g => g.trim());
+    const patterns = globs.split(',').map((g: string) => g.trim());
     return patterns.some(pattern => minimatch(filePath, pattern));
 }
 
@@ -209,7 +209,7 @@ export async function lintCommand(options: LintOptions): Promise<void> {
     }
 
     const allRules = loadRulesFromLibrary(libraryPath);
-    const activeRules = allRules.filter(rule => {
+    const activeRules = allRules.filter((rule: any) => {
         const category = rule.id.split('/')[0];
         return ruleSets.includes(category);
     });
