@@ -1,6 +1,6 @@
 {
     "name": "never-monorepo",
-    "version": "1.0.0",
+    "version": "0.0.7",
     "private": true,
     "description": "AI constraint engine for Claude, Cursor, and more",
     "packageManager": "npm@10.0.0",
