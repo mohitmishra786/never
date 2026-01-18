@@ -4,7 +4,7 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs';
-import { join, resolve, dirname, relative } from 'path';
+import { join, resolve, dirname, relative, sep } from 'path';
 import { homedir } from 'os';
 
 export interface LibrarySyncResult {
@@ -43,17 +43,22 @@ export class LibrarySync {
     }
 
     /**
-     * Fetch content from a URL
+     * Fetch content from a URL with timeout
      */
     private async fetchUrl(url: string): Promise<string | null> {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: controller.signal });
             if (!response.ok) {
                 return null;
             }
             return await response.text();
         } catch {
             return null;
+        } finally {
+            clearTimeout(timeout);
         }
     }
 
@@ -118,7 +123,15 @@ export class LibrarySync {
             const resolvedPath = resolve(this.cacheDir, filePath);
             
             // Ensure the resolved path is within the cache directory
-            if (!resolvedPath.startsWith(this.cacheDir)) {
+            // Use path.relative to check for traversal (..) or absolute paths
+            const relativePath = relative(this.cacheDir, resolvedPath);
+            if (relativePath.startsWith('..') || resolve(relativePath) === relativePath) {
+                result.errors.push(`Invalid path (traversal detected): ${filePath}`);
+                continue;
+            }
+            
+            // Additional check: resolved path must start with cacheDir + separator
+            if (!resolvedPath.startsWith(this.cacheDir + sep)) {
                 result.errors.push(`Invalid path (traversal detected): ${filePath}`);
                 continue;
             }

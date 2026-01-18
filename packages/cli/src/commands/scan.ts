@@ -249,8 +249,12 @@ function detectTools(projectPath: string): string[] {
         tools.push('gitlab-ci');
     }
 
-    // Linters/Formatters
-    if (existsSync(join(projectPath, '.eslintrc.js')) || existsSync(join(projectPath, '.eslintrc.json')) || existsSync(join(projectPath, 'eslint.config.js'))) {
+    // Linters/Formatters - check all ESLint config variants
+    const eslintConfigs = [
+        '.eslintrc.js', '.eslintrc.json', '.eslintrc.yaml', '.eslintrc.yml', '.eslintrc',
+        'eslint.config.js', 'eslint.config.mjs', 'eslint.config.cjs'
+    ];
+    if (eslintConfigs.some(cfg => existsSync(join(projectPath, cfg)))) {
         tools.push('eslint');
     }
     if (existsSync(join(projectPath, '.prettierrc')) || existsSync(join(projectPath, 'prettier.config.js'))) {

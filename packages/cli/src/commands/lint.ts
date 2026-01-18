@@ -91,6 +91,21 @@ function ruleAppliesToFile(rule: ParsedRule, filePath: string): boolean {
 }
 
 /**
+ * Common violation patterns - defined once outside the loop for better performance
+ */
+const VIOLATION_PATTERNS: Array<{ pattern: RegExp; trigger: string }> = [
+    { pattern: /\bany\b/, trigger: 'use `any`' },
+    { pattern: /\beval\s*\(/, trigger: 'use eval' },
+    { pattern: /console\.(log|debug|info)\s*\(/, trigger: 'debugging statements' },
+    { pattern: /\/\/\s*todo/i, trigger: 'todo comments' },
+    { pattern: /\bvar\s+\w/, trigger: 'use `var`' },
+    { pattern: /\.then\s*\(/, trigger: 'then() chains' },
+    { pattern: /hardcoded|password\s*=\s*['"]/, trigger: 'hardcode' },
+    { pattern: /@ts-ignore/, trigger: 'ts-ignore' },
+    { pattern: /eslint-disable/, trigger: 'eslint-disable' },
+];
+
+/**
  * Check for violations in the diff
  */
 function checkViolations(
@@ -113,20 +128,7 @@ function checkViolations(
                     const line = diffFile.additions[i].toLowerCase();
                     const lineNum = diffFile.lineNumbers[i];
 
-                    // Common violation patterns
-                    const violationPatterns: Array<{ pattern: RegExp; trigger: string }> = [
-                        { pattern: /\bany\b/, trigger: 'use `any`' },
-                        { pattern: /\beval\s*\(/, trigger: 'use eval' },
-                        { pattern: /console\.(log|debug|info)\s*\(/, trigger: 'debugging statements' },
-                        { pattern: /\/\/\s*todo/i, trigger: 'todo comments' },
-                        { pattern: /\bvar\s+\w/, trigger: 'use `var`' },
-                        { pattern: /\.then\s*\(/, trigger: 'then() chains' },
-                        { pattern: /hardcoded|password\s*=\s*['"]/, trigger: 'hardcode' },
-                        { pattern: /@ts-ignore/, trigger: 'ts-ignore' },
-                        { pattern: /eslint-disable/, trigger: 'eslint-disable' },
-                    ];
-
-                    for (const { pattern, trigger } of violationPatterns) {
+                    for (const { pattern, trigger } of VIOLATION_PATTERNS) {
                         if (lowerRule.includes(trigger) && pattern.test(line)) {
                             violations.push({
                                 file: diffFile.file,

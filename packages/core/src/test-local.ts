@@ -11,8 +11,8 @@ import { tmpdir } from 'os';
 const testDir = join(tmpdir(), `never-test-${Date.now()}`);
 mkdirSync(testDir, { recursive: true });
 
-console.log('\\n=== Never v0.0.1 Local Testing ===\\n');
-console.log(`Test directory: ${testDir}\\n`);
+console.log('\n=== Never v0.0.1 Local Testing ===\n');
+console.log(`Test directory: ${testDir}\n`);
 
 let passed = 0;
 let failed = 0;
@@ -86,8 +86,8 @@ test('SafetyManager generates diff correctly', () => {
     const safety = new SafetyManager(testDir);
     const testFile = join(testDir, 'diff-test.txt');
 
-    writeFileSync(testFile, 'line1\\nline2\\nline3');
-    const diff = safety.generateDiff(testFile, 'line1\\nmodified\\nline3');
+    writeFileSync(testFile, 'line1\nline2\nline3');
+    const diff = safety.generateDiff(testFile, 'line1\nmodified\nline3');
 
     return diff.changes.some(c => c.type === 'add' && c.content === 'modified');
 });
@@ -96,7 +96,7 @@ test('SafetyManager generates diff correctly', () => {
 test('ConflictDetector detects similar rules', () => {
     const detector = new ConflictDetector();
 
-    const existing = 'Always use TypeScript for new projects.\\nPrefer functional components.';
+    const existing = 'Always use TypeScript for new projects.\nPrefer functional components.';
     const newRules = ['Never use JavaScript for new projects'];
 
     const conflicts = detector.detectConflicts(existing, newRules, 0.3);
@@ -108,8 +108,8 @@ test('ConflictDetector detects similar rules', () => {
 test('ConflictDetector filters out conflicting rules', () => {
     const detector = new ConflictDetector();
 
-    const existing = 'Always use Tailwind CSS for styling.';
-    const newRules = ['Never use utility CSS frameworks', 'Never use any type'];
+    const existing = 'Always use TypeScript for type safety in your projects.';
+    const newRules = ['Never use TypeScript for type safety', 'Never use console.log'];
 
     const { safe, skipped } = detector.filterConflictingRules(existing, newRules, 0.3);
 
@@ -151,7 +151,7 @@ test('SyncEngine initializes correctly', () => {
     return engine !== null;
 });
 
-console.log(`\\n=== Results: ${passed} passed, ${failed} failed ===\\n`);
+console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
 
 // Cleanup
 rmSync(testDir, { recursive: true, force: true });
