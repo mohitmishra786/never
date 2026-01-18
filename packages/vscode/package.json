@@ -1,0 +1,84 @@
+{
+    "name": "never-vscode",
+    "displayName": "Never - AI Constraint Guardian",
+    "description": "Sync and manage AI constraints for Claude, Cursor, and more",
+    "version": "0.0.2",
+    "publisher": "mohitmishra",
+    "icon": "icon.png",
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Other",
+        "Linters"
+    ],
+    "keywords": [
+        "ai",
+        "claude",
+        "cursor",
+        "constraints",
+        "never"
+    ],
+    "activationEvents": [
+        "workspaceContains:package.json",
+        "workspaceContains:.never/config.yaml"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "never.sync",
+                "title": "Never: Sync Rules"
+            },
+            {
+                "command": "never.rollback",
+                "title": "Never: Rollback Last Sync"
+            },
+            {
+                "command": "never.init",
+                "title": "Never: Initialize Project"
+            },
+            {
+                "command": "never.pull",
+                "title": "Never: Update Rule Library"
+            }
+        ],
+        "configuration": {
+            "title": "Never",
+            "properties": {
+                "never.autoSync": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Automatically sync rules when package.json changes"
+                },
+                "never.showStatusBar": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show Never status in the status bar"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "watch": "tsc -watch",
+        "package": "vsce package",
+        "publish": "vsce publish"
+    },
+    "dependencies": {
+        "@mohitmishra7/never-core": "*"
+    },
+    "devDependencies": {
+        "@types/node": "^20.17.9",
+        "@types/vscode": "^1.85.0",
+        "@vscode/vsce": "^2.22.0",
+        "typescript": "^5.6.3"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mohitmishra786/never.git",
+        "directory": "packages/vscode"
+    },
+    "license": "MIT"
+}

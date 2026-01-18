@@ -1,8 +1,26 @@
+<div align="center">
+
 # Never
 
 *"The beginning of wisdom is the definition of terms."* — Socrates
 
 A constraint engine for AI coding assistants. One library to stop them all.
+
+[![NPM Version](https://img.shields.io/npm/v/@mohitmishra7/never-cli?style=flat-square&color=007acc)](https://www.npmjs.com/package/@mohitmishra7/never-cli)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![Twitter Follow](https://img.shields.io/twitter/follow/chessMan786?style=social)](https://x.com/chessMan786)
+
+</div>
+
+---
+
+## Packages
+
+| Package | Version | Description | Link |
+| :--- | :--- | :--- | :--- |
+| **CLI** | [![npm](https://img.shields.io/npm/v/@mohitmishra7/never-cli.svg?label=)](https://www.npmjs.com/package/@mohitmishra7/never-cli) | Command-line tool for syncing and linting | [View on NPM](https://www.npmjs.com/package/@mohitmishra7/never-cli) |
+| **Core** | [![npm](https://img.shields.io/npm/v/@mohitmishra7/never-core.svg?label=)](https://www.npmjs.com/package/@mohitmishra7/never-core) | Core logic and constraint engine | [View on NPM](https://www.npmjs.com/package/@mohitmishra7/never-core) |
+| **MCP Server** | [![npm](https://img.shields.io/npm/v/@mohitmishra7/never-mcp-server.svg?label=)](https://www.npmjs.com/package/@mohitmishra7/never-mcp-server) | Model Context Protocol server for Claude | [View on NPM](https://www.npmjs.com/package/@mohitmishra7/never-mcp-server) |
 
 ---
 
