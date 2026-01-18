@@ -12,8 +12,10 @@
         }
     },
     "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist",
+        "build": "npm run copy-library-src && tsc --build && npm run copy-library-dist",
+        "copy-library-src": "rm -rf src/bundled-library && cp -r ../library src/bundled-library",
+        "copy-library-dist": "mkdir -p dist && cp -r src/bundled-library dist/bundled-library",
+        "clean": "rm -rf dist src/bundled-library tsconfig.tsbuildinfo",
         "test": "vitest run",
         "lint": "tsc --noEmit"
     },

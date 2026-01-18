@@ -8,8 +8,8 @@
         "never": "./dist/index.js"
     },
     "scripts": {
-        "build": "tsc && rm -rf library && cp -r ../library .",
-        "clean": "rm -rf dist library",
+        "build": "tsc",
+        "clean": "rm -rf dist",
         "start": "node dist/index.js",
         "dev": "tsx src/index.ts",
         "test": "vitest run",
@@ -33,7 +33,6 @@
     },
     "files": [
         "dist",
-        "library",
         "README.md"
     ],
     "engines": {

@@ -24,6 +24,7 @@
     "exclude": [
         "node_modules",
         "dist",
-        "**/*.test.ts"
+        "**/*.test.ts",
+        "src/bundled-library"
     ]
 }

@@ -70,3 +70,27 @@ jobs:
 
       - name: Run linter
         run: npm run lint
+
+  validate:
+    name: Validate Rules and Test Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate rule format
+        run: npm run validate:rules
+
+      - name: Test NPM package integration
+        run: npm run test:npm-package
