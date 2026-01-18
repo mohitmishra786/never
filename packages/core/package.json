@@ -1,0 +1,42 @@
+{
+    "name": "@never/core",
+    "version": "1.0.0",
+    "description": "Core engine for Never - AI constraint management",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "gray-matter": "^4.0.3",
+        "minimatch": "^10.0.1",
+        "yaml": "^2.6.1",
+        "zod": "^3.23.8"
+    },
+    "devDependencies": {
+        "@types/node": "^20.17.9",
+        "typescript": "^5.6.3",
+        "vitest": "^1.6.1"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mohitmishra786/never.git",
+        "directory": "packages/core"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "license": "MIT"
+}

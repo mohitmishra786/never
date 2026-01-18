@@ -1,0 +1,39 @@
+{
+    "name": "@never/mcp-server",
+    "version": "1.0.0",
+    "description": "MCP Server for Never - provides AI constraints via Model Context Protocol",
+    "type": "module",
+    "main": "./dist/index.js",
+    "bin": {
+        "never-mcp": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "start": "node dist/index.js",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.0.0",
+        "@never/core": "*",
+        "gray-matter": "^4.0.3",
+        "minimatch": "^10.0.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.17.9",
+        "typescript": "^5.6.3",
+        "vitest": "^1.6.1"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mohitmishra786/never.git",
+        "directory": "packages/mcp-server"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "license": "MIT"
+}

@@ -1,0 +1,56 @@
+{
+    "name": "@never/cli",
+    "version": "1.0.0",
+    "description": "AI constraint CLI for Claude, Cursor, and more",
+    "type": "module",
+    "main": "./dist/index.js",
+    "bin": {
+        "never": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "start": "node dist/index.js",
+        "dev": "tsx src/index.ts",
+        "test": "vitest run",
+        "prepublishOnly": "npm run build"
+    },
+    "dependencies": {
+        "@clack/prompts": "^0.7.0",
+        "@never/core": "*",
+        "chalk": "^5.3.0",
+        "commander": "^12.1.0",
+        "gray-matter": "^4.0.3",
+        "yaml": "^2.6.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.17.9",
+        "tsx": "^4.19.2",
+        "typescript": "^5.6.3",
+        "vitest": "^1.6.1"
+    },
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mohitmishra786/never.git",
+        "directory": "packages/cli"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "keywords": [
+        "ai",
+        "claude",
+        "cursor",
+        "constraints",
+        "never",
+        "rules"
+    ],
+    "license": "MIT"
+}
