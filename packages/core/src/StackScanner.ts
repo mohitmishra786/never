@@ -5,18 +5,26 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-
-// Handle both ESM and CommonJS environments
-const require = typeof __filename !== 'undefined' 
-    ? createRequire(__filename) 
-    : createRequire(import.meta.url);
-const ignore = require('ignore') as (options?: any) => Ignore;
 
 interface Ignore {
     add(patterns: string | readonly string[]): Ignore;
     ignores(pathname: string): boolean;
+}
+
+// Load ignore package - will work in both ESM and CommonJS after compilation
+function loadIgnoreModule(): (options?: any) => Ignore {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const ignoreModule = require('ignore');
+        return typeof ignoreModule === 'function' ? ignoreModule : ignoreModule.default;
+    } catch (error) {
+        // Fallback if ignore is not available
+        console.warn('ignore package not available, .gitignore will not be respected');
+        return () => ({
+            add: function(this: Ignore) { return this; },
+            ignores: () => false
+        }) as Ignore;
+    }
 }
 
 export interface ProjectInfo {
@@ -46,6 +54,7 @@ export interface StackInfo {
  * Load .gitignore patterns using the ignore package
  */
 function loadGitignore(projectPath: string): Ignore {
+    const ignore = loadIgnoreModule();
     const ig = ignore();
     
     // Always ignore common directories
