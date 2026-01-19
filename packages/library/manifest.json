@@ -1,0 +1,21 @@
+{
+    "version": "1.0.0",
+    "lastUpdated": "2026-01-20T19:50:00.000Z",
+    "files": [
+        "agents/claude-code.md",
+        "core/ai-guidelines.md",
+        "core/code-quality.md",
+        "core/code.md",
+        "core/hygiene.md",
+        "core/safety.md",
+        "core/security.md",
+        "core/tone.md",
+        "core/workflow.md",
+        "languages/python.md",
+        "languages/typescript.md",
+        "stacks/docker.md",
+        "stacks/node-backend.md",
+        "stacks/react-typescript.md",
+        "web/react.md"
+    ]
+}
