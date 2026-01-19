@@ -41,6 +41,9 @@ Checks your current code against the active constraints. If you have a rule that
 ### `never scan`
 Analyzes your codebase to recommend rule packs. It looks at `package.json`, `requirements.txt`, and file extensions to understand what you are building, then suggests the constraints you probably should have enabled.
 
+### `never doctor`
+Runs health checks and diagnoses common issues with your Never setup. It verifies that the configuration is valid, the rule library is accessible, and the output files are properly formatted.
+
 ## Architecture
 
 The CLI is a thin wrapper around `@mohitmishra7/never-core`. It handles the user interaction, argument parsing (via `commander`), and output formatting. The heavy lifting of rule parsing and synchronization happens in the core, ensuring consistent behavior across all Never tools.

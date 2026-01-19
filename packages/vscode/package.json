@@ -2,7 +2,7 @@
     "name": "never-vscode",
     "displayName": "Never - AI Constraint Guardian",
     "description": "Sync and manage AI constraints for Claude, Cursor, and more",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "type": "module",
     "publisher": "mohitmishra",
     "icon": "icon.png",
@@ -65,11 +65,11 @@
         "build": "node build.js",
         "clean": "rm -rf dist",
         "watch": "tsc -watch",
-        "package": "npm run build && vsce package",
+        "package": "npm run build && vsce package --no-dependencies",
         "publish": "vsce publish"
     },
     "dependencies": {
-        "@mohitmishra7/never-core": "0.0.7"
+        "@mohitmishra7/never-core": "0.0.8"
     },
     "devDependencies": {
         "@types/node": "^20.17.9",

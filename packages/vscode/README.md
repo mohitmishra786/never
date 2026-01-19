@@ -8,7 +8,7 @@ This extension integrates **Never** directly into VS Code, ensuring your AI assi
 
 ## Features
 
-*   **Auto-Sync:** Austomatically syncs rules when you save `config.yaml`.
+*   **Auto-Sync:** Automatically syncs rules when you save `config.yaml`.
 *   **Linting:** Highlights violations of "Never" rules in your editor.
 *   **Commands:** Run `Never: Sync Rules` and `Never: Scan Project` from the command palette.
 

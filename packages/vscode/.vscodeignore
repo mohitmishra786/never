@@ -1,0 +1,27 @@
+# Source files (not needed - we bundle with esbuild)
+src/**
+**/*.ts
+!**/*.d.ts
+tsconfig.json
+build.js
+
+# Node modules (bundled by esbuild)
+node_modules/**
+
+# Parent and sibling directories (monorepo structure)
+../**
+
+# Turbo cache
+.turbo/**
+
+# Development files
+.gitignore
+.eslintrc*
+**/*.map
+
+# Test files
+**/*.test.ts
+**/*.test.js
+
+# Build artifacts we don't need
+*.vsix

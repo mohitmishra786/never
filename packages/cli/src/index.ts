@@ -18,7 +18,7 @@ const program = new Command();
 program
     .name('never')
     .description('Universal AI Constraint Engine - Sync "Never" rules to AI coding agents')
-    .version('1.1.0');
+    .version('0.0.8');
 
 program
     .command('init')
