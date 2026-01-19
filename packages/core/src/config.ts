@@ -8,8 +8,22 @@ import { homedir } from 'os';
 import { fileURLToPath } from 'url';
 import YAML from 'yaml';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Get __dirname in both ESM and CJS contexts (for VS Code extension bundling)
+function getDirname(): string {
+    // Try ESM first (import.meta.url)
+    try {
+        if (typeof import.meta !== 'undefined' && import.meta.url) {
+            return dirname(fileURLToPath(import.meta.url));
+        }
+    } catch {
+        // Fallback for CJS bundled context
+    }
+    // CJS fallback - __dirname is available globally in CJS
+    // When bundled by esbuild, the bundler will replace this with the correct path
+    return __dirname;
+}
+
+const currentDirname = getDirname();
 
 export interface NeverConfig {
     version: number;
@@ -58,7 +72,7 @@ export function getLibraryPath(bundledPath?: string): string {
     
     // Try to find bundled library relative to this file
     // In production: node_modules/@mohitmishra7/never-core/dist/bundled-library
-    const bundledRelative = join(__dirname, 'bundled-library');
+    const bundledRelative = join(currentDirname, 'bundled-library');
     if (existsSync(bundledRelative)) {
         return bundledRelative;
     }
