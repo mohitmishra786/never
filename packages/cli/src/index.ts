@@ -6,6 +6,9 @@
  */
 
 import { Command } from 'commander';
+import { existsSync, readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { initCommand } from './commands/init.js';
 import { syncCommand } from './commands/sync.js';
 import { listCommand } from './commands/list.js';
@@ -13,12 +16,40 @@ import { scanCommand } from './commands/scan.js';
 import { lintCommand } from './commands/lint.js';
 import { doctorCommand } from './commands/doctor.js';
 
+const CLI_VERSION = '0.0.9';
+
+// Get __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
+ * Check if running from global install vs local and warn about version mismatch
+ */
+function checkVersionMismatch(): void {
+    try {
+        const localPackageJson = join(process.cwd(), 'node_modules', '@mohitmishra7', 'never-cli', 'package.json');
+        if (existsSync(localPackageJson)) {
+            const localPkg = JSON.parse(readFileSync(localPackageJson, 'utf-8'));
+            if (localPkg.version !== CLI_VERSION) {
+                console.warn(`\x1b[33m⚠ Version mismatch: Global CLI is v${CLI_VERSION}, local project has v${localPkg.version}\x1b[0m`);
+                console.warn(`  Consider running: npx @mohitmishra7/never-cli@${localPkg.version}\n`);
+            }
+        }
+    } catch {
+        // Ignore errors - version check is optional
+    }
+}
+
 const program = new Command();
 
 program
     .name('never')
     .description('Universal AI Constraint Engine - Sync "Never" rules to AI coding agents')
-    .version('0.0.8');
+    .version(CLI_VERSION)
+    .action(() => {
+        // Show help when no command is provided
+        program.outputHelp();
+    });
 
 program
     .command('init')
@@ -61,6 +92,9 @@ program
     .command('doctor')
     .description('Run health checks and diagnose common issues')
     .action(doctorCommand);
+
+// Check for version mismatch before running
+checkVersionMismatch();
 
 // Use parseAsync to properly await async command handlers
 await program.parseAsync();

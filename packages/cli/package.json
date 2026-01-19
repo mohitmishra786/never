@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-cli",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "description": "AI constraint CLI for Claude, Cursor, and more",
     "type": "module",
     "main": "./dist/index.js",
@@ -10,16 +10,17 @@
     "scripts": {
         "build": "tsc && npm run postbuild",
         "postbuild": "node -e \"const fs=require('fs');const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!')){fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);}\"",
+        "verify-dist": "node -e \"const fs=require('fs');const f='dist/index.js';if(!fs.existsSync(f)){console.error('ERROR: dist/index.js not found');process.exit(1);}const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/usr/bin/env node')){console.error('ERROR: shebang missing');process.exit(1);}console.log('✓ dist/index.js verified with shebang');\"",
         "postinstall": "node scripts/postinstall.js 2>/dev/null || true",
         "clean": "rm -rf dist",
         "start": "node dist/index.js",
         "dev": "tsx src/index.ts",
         "test": "vitest run",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm run build && npm run verify-dist"
     },
     "dependencies": {
         "@clack/prompts": "^0.7.0",
-        "@mohitmishra7/never-core": "0.0.8",
+        "@mohitmishra7/never-core": "0.0.9",
         "chalk": "^5.3.0",
         "commander": "^12.1.0",
         "gray-matter": "^4.0.3",

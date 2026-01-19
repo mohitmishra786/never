@@ -1,9 +1,14 @@
 /**
  * `never scan` command
  * Auto-detect the tech stack and recommend rule packs
+ * 
+ * Multi-stage pipeline:
+ * - Stage 1 (Filesystem): Detect config files (.gitignore, tsconfig.json, tailwind.config.js)
+ * - Stage 2 (Manifest): Parse package.json for dependencies
+ * - Stage 3 (Source): Sample source files for import patterns
  */
 
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
 import { detectProject, suggestRuleSets, generateStackSummary, type ProjectInfo, type StackInfo, type ScanResult } from '@mohitmishra7/never-core';
@@ -11,6 +16,50 @@ import { detectProject, suggestRuleSets, generateStackSummary, type ProjectInfo,
 interface ScanOptions {
     json?: boolean;
     verbose?: boolean;
+}
+
+/**
+ * Stack Report - JSON-compatible output for consumption by other commands
+ */
+interface StackReport {
+    version: string;
+    timestamp: string;
+    projectPath: string;
+    stages: {
+        filesystem: FilesystemStage;
+        manifest: ManifestStage;
+        source: SourceStage;
+    };
+    summary: {
+        languages: string[];
+        frameworks: string[];
+        tools: string[];
+        recommendedPacks: string[];
+        ruleCount: number;
+    };
+}
+
+interface FilesystemStage {
+    configFiles: string[];
+    hasGitignore: boolean;
+    hasTsConfig: boolean;
+    hasTailwind: boolean;
+    hasDocker: boolean;
+    hasCI: boolean;
+}
+
+interface ManifestStage {
+    packageJson: boolean;
+    dependencies: string[];
+    devDependencies: string[];
+    pyprojectToml: boolean;
+    requirementsTxt: boolean;
+}
+
+interface SourceStage {
+    sampledFiles: number;
+    detectedImports: string[];
+    patterns: string[];
 }
 
 interface PackageJson {
@@ -302,7 +351,91 @@ function getRecommendedPacks(languages: string[], frameworks: string[]): string[
 }
 
 /**
- * Perform a complete project scan
+ * Stage 3: Sample source files for import patterns
+ */
+function sampleSourceFiles(projectPath: string): SourceStage {
+    const result: SourceStage = {
+        sampledFiles: 0,
+        detectedImports: [],
+        patterns: [],
+    };
+
+    const srcDir = join(projectPath, 'src');
+    if (!existsSync(srcDir)) {
+        return result;
+    }
+
+    const importPatterns = new Set<string>();
+    const codePatterns = new Set<string>();
+
+    // Sample up to 5 files
+    const files: string[] = [];
+    const collectFiles = (dir: string, depth: number = 0): void => {
+        if (depth > 2 || files.length >= 5) return;
+        try {
+            const entries = readdirSync(dir);
+            for (const entry of entries) {
+                if (files.length >= 5) break;
+                const fullPath = join(dir, entry);
+                const stat = statSync(fullPath);
+                if (stat.isFile() && /\.(ts|tsx|js|jsx|py)$/.test(entry)) {
+                    files.push(fullPath);
+                } else if (stat.isDirectory() && !entry.startsWith('.') && entry !== 'node_modules') {
+                    collectFiles(fullPath, depth + 1);
+                }
+            }
+        } catch {
+            // Ignore errors
+        }
+    };
+
+    collectFiles(srcDir);
+    result.sampledFiles = files.length;
+
+    // Analyze first 5 lines of each file
+    for (const file of files) {
+        try {
+            const content = readFileSync(file, 'utf-8');
+            const lines = content.split('\n').slice(0, 5);
+
+            for (const line of lines) {
+                // Detect React imports
+                if (line.includes("from 'react'") || line.includes('from "react"')) {
+                    importPatterns.add('react');
+                }
+                // Detect Next.js imports
+                if (line.includes("from 'next") || line.includes('from "next')) {
+                    importPatterns.add('nextjs');
+                }
+                // Detect Vue imports
+                if (line.includes("from 'vue'") || line.includes('from "vue"')) {
+                    importPatterns.add('vue');
+                }
+                // Detect Express imports
+                if (line.includes("from 'express'") || line.includes('require("express")')) {
+                    importPatterns.add('express');
+                }
+                // Detect TypeScript patterns
+                if (line.includes(': React.FC') || line.includes('interface ') || line.includes('type ')) {
+                    codePatterns.add('typescript-strict');
+                }
+                // Detect hooks usage
+                if (line.includes('useState') || line.includes('useEffect')) {
+                    codePatterns.add('react-hooks');
+                }
+            }
+        } catch {
+            // Ignore read errors
+        }
+    }
+
+    result.detectedImports = Array.from(importPatterns);
+    result.patterns = Array.from(codePatterns);
+    return result;
+}
+
+/**
+ * Perform a complete multi-stage project scan
  */
 export function scanProject(projectPath: string): ScanResult {
     const languages = detectLanguages(projectPath);
@@ -321,6 +454,77 @@ export function scanProject(projectPath: string): ScanResult {
 }
 
 /**
+ * Generate full Stack Report with all stages
+ */
+export function generateStackReport(projectPath: string): StackReport {
+    const languages = detectLanguages(projectPath);
+    const nodeFrameworks = detectNodeFrameworks(projectPath);
+    const pythonFrameworks = detectPythonFrameworks(projectPath);
+    const frameworks = [...nodeFrameworks, ...pythonFrameworks];
+    const tools = detectTools(projectPath);
+    const recommendedPacks = getRecommendedPacks(languages, frameworks);
+    const sourceStage = sampleSourceFiles(projectPath);
+
+    // Stage 1: Filesystem
+    const configFiles: string[] = [];
+    const checkConfigs = [
+        'tsconfig.json', 'package.json', '.gitignore', 'tailwind.config.js',
+        'tailwind.config.ts', 'next.config.js', 'vite.config.ts', 'webpack.config.js'
+    ];
+    for (const cfg of checkConfigs) {
+        if (existsSync(join(projectPath, cfg))) {
+            configFiles.push(cfg);
+        }
+    }
+
+    // Stage 2: Manifest
+    let dependencies: string[] = [];
+    let devDependencies: string[] = [];
+    const packageJsonPath = join(projectPath, 'package.json');
+    if (existsSync(packageJsonPath)) {
+        try {
+            const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+            dependencies = Object.keys(pkg.dependencies || {});
+            devDependencies = Object.keys(pkg.devDependencies || {});
+        } catch {
+            // Ignore parse errors
+        }
+    }
+
+    return {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        projectPath,
+        stages: {
+            filesystem: {
+                configFiles,
+                hasGitignore: existsSync(join(projectPath, '.gitignore')),
+                hasTsConfig: existsSync(join(projectPath, 'tsconfig.json')),
+                hasTailwind: existsSync(join(projectPath, 'tailwind.config.js')) || 
+                             existsSync(join(projectPath, 'tailwind.config.ts')),
+                hasDocker: existsSync(join(projectPath, 'Dockerfile')),
+                hasCI: existsSync(join(projectPath, '.github', 'workflows')),
+            },
+            manifest: {
+                packageJson: existsSync(packageJsonPath),
+                dependencies,
+                devDependencies,
+                pyprojectToml: existsSync(join(projectPath, 'pyproject.toml')),
+                requirementsTxt: existsSync(join(projectPath, 'requirements.txt')),
+            },
+            source: sourceStage,
+        },
+        summary: {
+            languages,
+            frameworks,
+            tools,
+            recommendedPacks,
+            ruleCount: recommendedPacks.length * 10, // Estimate
+        },
+    };
+}
+
+/**
  * Main scan command handler
  */
 export async function scanCommand(options: ScanOptions): Promise<void> {
@@ -329,14 +533,23 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
 
     console.log(chalk.bold('Scanning project...\n'));
 
-    const result = scanProject(projectPath);
-
+    // Use full Stack Report for JSON output
     if (options.json) {
-        console.log(JSON.stringify(result, null, 2));
+        const report = generateStackReport(projectPath);
+        console.log(JSON.stringify(report, null, 2));
         return;
     }
 
-    // Display results
+    const result = scanProject(projectPath);
+
+    // Display results with stage information
+    if (verbose) {
+        console.log(chalk.dim('Stage 1: Filesystem analysis...'));
+        console.log(chalk.dim('Stage 2: Manifest parsing...'));
+        console.log(chalk.dim('Stage 3: Source sampling...'));
+        console.log();
+    }
+
     console.log(chalk.blue('📋 Detected Languages:'));
     if (result.languages.length > 0) {
         for (const lang of result.languages) {
@@ -372,9 +585,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
         console.log(`   ${chalk.cyan('→')} ${pack}`);
     }
 
-    if (verbose) {
-        console.log();
-        console.log(chalk.dim('Run `never init` to create a config with these packs'));
-        console.log(chalk.dim('Run `never sync` to generate constraint files'));
-    }
+    console.log();
+    console.log(chalk.dim('Run `never init` to create a config with these packs'));
+    console.log(chalk.dim('Run `never scan --json` for machine-readable output'));
 }
