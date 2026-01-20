@@ -20,6 +20,7 @@ import {
     writeCategoryMdcFiles,
     updateClaudeFile,
     updateAgentsFile,
+    updateCopilotFile,
     generateSkillFile,
     type RulePack
 } from '@mohitmishra7/never-core';
@@ -72,6 +73,7 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
             targets: {
                 cursor: projectInfo.hasCursor || existsSync(join(projectPath, '.cursor')),
                 claude: true,
+                copilot: existsSync(join(projectPath, '.github')),
                 agents: true,
             },
             autoDetect: true,
@@ -155,6 +157,14 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
         const agentsResult = updateAgentsFile(projectPath, activeRules, dryRun);
         generatedFiles.push(agentsResult.path);
         console.log(`  Updated: ${agentsResult.path}`);
+    }
+
+    // GitHub Copilot .github/copilot-instructions.md
+    if (config.targets.copilot) {
+        console.log(chalk.blue('Generating .github/copilot-instructions.md...'));
+        const copilotResult = updateCopilotFile(projectPath, activeRules, dryRun);
+        generatedFiles.push(copilotResult.path);
+        console.log(`  Updated: ${copilotResult.path}`);
     }
 
     // Claude Skills (optional)

@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
 import YAML from 'yaml';
-import { detectProject, suggestRuleSets } from '@mohitmishra7/never-core';
+import { detectProject, detectEnvironment, suggestRuleSets, type EnvironmentInfo } from '@mohitmishra7/never-core';
 
 interface InitConfig {
     agents: string[];
@@ -69,18 +69,27 @@ export async function initCommand(): Promise<void> {
         p.note('No specific stacks detected. Will use core rules.', 'Project Analysis');
     }
 
-    // Detect likely agents based on existing files
+    // Detect environment using the "Detective Engine"
+    const envInfo: EnvironmentInfo = detectEnvironment(projectPath);
+
+    // Build detected agents list from environment detection
     const detectedAgents: string[] = [];
-    if (existsSync(join(projectPath, 'CLAUDE.md'))) detectedAgents.push('claude');
-    if (existsSync(join(projectPath, '.cursorrules')) || existsSync(join(projectPath, '.cursor'))) {
-        detectedAgents.push('cursor');
-    }
+    if (envInfo.claude) detectedAgents.push('claude');
+    if (envInfo.cursor) detectedAgents.push('cursor');
+    if (envInfo.copilot) detectedAgents.push('copilot');
     if (existsSync(join(projectPath, 'AGENTS.md'))) {
         detectedAgents.push('windsurf');
     }
 
     // Default to Claude + Cursor if nothing detected
     const defaultAgents = detectedAgents.length > 0 ? detectedAgents : ['claude', 'cursor'];
+
+    // Show warnings if multiple environments detected
+    if (envInfo.warnings.length > 0) {
+        for (const warning of envInfo.warnings) {
+            p.note(chalk.yellow(`${warning}`), 'Environment Detection');
+        }
+    }
 
     // Show recommended setup
     const recommendedSetup = {
@@ -118,6 +127,7 @@ export async function initCommand(): Promise<void> {
             options: [
                 { value: 'claude', label: 'Claude Code', hint: 'Generates CLAUDE.md' },
                 { value: 'cursor', label: 'Cursor', hint: 'Generates .cursor/rules/*.mdc' },
+                { value: 'copilot', label: 'GitHub Copilot', hint: 'Generates .github/copilot-instructions.md' },
                 { value: 'windsurf', label: 'Windsurf', hint: 'Generates AGENTS.md' },
                 { value: 'opencode', label: 'OpenCode', hint: 'Generates AGENTS.md' },
             ],
@@ -182,6 +192,7 @@ export async function initCommand(): Promise<void> {
             targets: {
                 cursor: config.agents.includes('cursor'),
                 claude: config.agents.includes('claude'),
+                copilot: config.agents.includes('copilot'),
                 agents: config.agents.includes('windsurf') || config.agents.includes('opencode'),
             },
             autoDetect: config.autoDetect,
@@ -221,6 +232,22 @@ export async function initCommand(): Promise<void> {
             const cursorDir = join(projectPath, '.cursor', 'rules');
             if (!existsSync(cursorDir)) {
                 mkdirSync(cursorDir, { recursive: true });
+            }
+        }
+
+        if (config.agents.includes('copilot')) {
+            const githubDir = join(projectPath, '.github');
+            const copilotPath = join(githubDir, 'copilot-instructions.md');
+            if (!existsSync(githubDir)) {
+                mkdirSync(githubDir, { recursive: true });
+            }
+            if (existsSync(copilotPath)) {
+                // File exists, append markers at bottom
+                insertMarkers(copilotPath, '<!-- Never rules will be synced here -->');
+                s.message('Appended markers to existing copilot-instructions.md');
+            } else {
+                // Create new file with markers
+                insertMarkers(copilotPath, '<!-- Never rules will be synced here -->');
             }
         }
 

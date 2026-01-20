@@ -158,3 +158,34 @@ export function updateAgentsFile(projectPath: string, rules: ParsedRule[], dryRu
 
     return { path: filePath, content: newContent, written: !dryRun };
 }
+
+/**
+ * Update .github/copilot-instructions.md for GitHub Copilot
+ */
+export function updateCopilotFile(projectPath: string, rules: ParsedRule[], dryRun = false): { path: string, content: string, written: boolean } {
+    const githubDir = join(projectPath, '.github');
+    const filePath = join(githubDir, 'copilot-instructions.md');
+    let existingContent = '';
+
+    // Ensure .github directory exists
+    if (!dryRun && !existsSync(githubDir)) {
+        mkdirSync(githubDir, { recursive: true });
+    }
+
+    if (existsSync(filePath)) {
+        existingContent = readFileSync(filePath, 'utf-8');
+    }
+
+    const newRules = rules.flatMap(r => r.rules.map(rule => `- ${rule}`)).join('\n');
+    const newContent = replaceMarkerSection(existingContent, newRules);
+
+    if (!dryRun) {
+        const safety = new SafetyManager(projectPath);
+        if (existingContent && existingContent !== '') {
+            safety.createBackup(filePath);
+        }
+        safety.atomicWrite(filePath, newContent);
+    }
+
+    return { path: filePath, content: newContent, written: !dryRun };
+}

@@ -24,10 +24,14 @@ export {
 // Stack Scanner
 export {
     detectProject,
+    detectEnvironment,
     suggestRuleSets,
+    suggestRulePacksFromDeps,
     generateStackSummary,
     type ProjectInfo,
     type StackInfo,
+    type EnvironmentInfo,
+    type RulePackSuggestion,
 } from './StackScanner.js';
 
 // Generators
@@ -36,6 +40,7 @@ export {
     generateSkillFile,
     updateClaudeFile,
     updateAgentsFile,
+    updateCopilotFile,
     replaceMarkerSection
 } from './generators.js';
 
