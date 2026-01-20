@@ -20,6 +20,7 @@
         "lint": "tsc --noEmit"
     },
     "dependencies": {
+        "fast-glob": "^3.3.3",
         "gray-matter": "^4.0.3",
         "ignore": "^6.0.2",
         "minimatch": "^9.0.5",

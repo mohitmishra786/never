@@ -1,8 +1,14 @@
 {
     "version": "1.0.0",
-    "lastUpdated": "2026-01-20T20:30:00.000Z",
+    "lastUpdated": "2026-01-21T01:00:00.000Z",
     "files": [
         "agents/claude-code.md",
+        "backend/django.md",
+        "backend/fastapi.md",
+        "backend/nestjs.md",
+        "cloud/aws-cdk.md",
+        "cloud/supabase.md",
+        "cloud/terraform.md",
         "core/ai-guidelines.md",
         "core/code-quality.md",
         "core/code.md",
@@ -13,9 +19,17 @@
         "core/workflow.md",
         "languages/python.md",
         "languages/typescript.md",
+        "mobile/flutter.md",
+        "mobile/react-native.md",
+        "modern-web/astro.md",
+        "modern-web/remix.md",
+        "modern-web/svelte.md",
         "stacks/docker.md",
         "stacks/node-backend.md",
         "stacks/react-typescript.md",
+        "testing/cypress.md",
+        "testing/playwright.md",
+        "testing/vitest.md",
         "web/react.md"
     ]
 }
