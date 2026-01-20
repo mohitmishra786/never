@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-mcp-server",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "MCP Server for the Never Constraint Engine",
     "type": "module",
     "main": "./dist/index.js",
@@ -8,13 +8,14 @@
         "never-mcp-server": "./dist/index.js"
     },
     "scripts": {
+        "prebuild": "rm -rf dist tsconfig.tsbuildinfo",
         "build": "tsc",
         "start": "node dist/index.js",
         "dev": "tsx src/index.ts"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^0.6.0",
-        "@mohitmishra7/never-core": "1.0.1",
+        "@mohitmishra7/never-core": "1.0.2",
         "gray-matter": "^4.0.3",
         "minimatch": "^9.0.5"
     },
