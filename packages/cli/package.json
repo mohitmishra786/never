@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-cli",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "AI constraint CLI for Claude, Cursor, and more",
     "type": "module",
     "main": "./dist/index.js",
@@ -8,6 +8,7 @@
         "never": "./dist/index.js"
     },
     "scripts": {
+        "prebuild": "rm -rf dist tsconfig.tsbuildinfo",
         "build": "tsc && npm run postbuild",
         "postbuild": "node -e \"const fs=require('fs');const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!')){fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);}\"",
         "verify-dist": "node -e \"const fs=require('fs');const f='dist/index.js';if(!fs.existsSync(f)){console.error('ERROR: dist/index.js not found');process.exit(1);}const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/usr/bin/env node')){console.error('ERROR: shebang missing');process.exit(1);}console.log('✓ dist/index.js verified with shebang');\"",
@@ -20,7 +21,7 @@
     },
     "dependencies": {
         "@clack/prompts": "^0.7.0",
-        "@mohitmishra7/never-core": "1.0.1",
+        "@mohitmishra7/never-core": "1.0.2",
         "chalk": "^5.3.0",
         "commander": "^12.1.0",
         "gray-matter": "^4.0.3",
