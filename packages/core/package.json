@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-core",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Core engine for Never - AI constraint management",
     "type": "module",
     "main": "./dist/index.js",
