@@ -645,3 +645,146 @@ export function generateStackSummary(info: ProjectInfo): string {
     return `Found ${stackCount} stacks. Syncing ${totalRules} relevant nevers.`;
 }
 
+
+// ============================================================================
+// ASYNC DETECTION WITH FAST-GLOB AND PERSISTENT CACHING
+// ============================================================================
+
+import { createHash } from 'crypto';
+import { promises as fsPromises } from 'fs';
+import fg from 'fast-glob';
+
+/**
+ * Persistent cache structure stored in .never/cache.json
+ */
+interface PersistentCache {
+    packageJsonHash: string;
+    /** Config hash from getConfigHash() to detect changes in tsconfig, requirements.txt, etc. */
+    configHash: string;
+    timestamp: string;
+    result: ProjectInfo;
+}
+
+/**
+ * Calculate MD5 hash of package.json content
+ */
+function calculateMD5Hash(content: string): string {
+    return createHash('md5').update(content).digest('hex');
+}
+
+/**
+ * Load persistent cache from .never/cache.json
+ */
+async function loadPersistentCache(projectPath: string): Promise<PersistentCache | null> {
+    const cachePath = join(projectPath, '.never', 'cache.json');
+    try {
+        const content = await fsPromises.readFile(cachePath, 'utf-8');
+        return JSON.parse(content) as PersistentCache;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Save cache to .never/cache.json
+ */
+async function savePersistentCache(projectPath: string, cache: PersistentCache): Promise<void> {
+    const neverDir = join(projectPath, '.never');
+    try {
+        await fsPromises.mkdir(neverDir, { recursive: true });
+        const cachePath = join(neverDir, 'cache.json');
+        await fsPromises.writeFile(cachePath, JSON.stringify(cache, null, 2), 'utf-8');
+    } catch {
+        // Silently fail - cache is optional
+    }
+}
+
+/**
+ * Async project detection using fast-glob with persistent caching
+ * Uses MD5 hash of package.json and config hash to determine if cache is still valid
+ */
+export async function detectProjectAsync(
+    projectPath: string = process.cwd(),
+    options: DetectOptions = {}
+): Promise<ProjectInfo> {
+    const useCache = options.useCache ?? true;
+
+    // Calculate current package.json hash
+    const packageJsonPath = join(projectPath, 'package.json');
+    let currentHash = '';
+
+    try {
+        const packageJsonContent = await fsPromises.readFile(packageJsonPath, 'utf-8');
+        currentHash = calculateMD5Hash(packageJsonContent);
+    } catch {
+        // No package.json, use mtime-based hash
+        currentHash = getConfigHash(projectPath);
+    }
+
+    // Calculate config hash for other config files (tsconfig, requirements.txt, etc.)
+    const currentConfigHash = getConfigHash(projectPath);
+
+    // Check persistent cache
+    if (useCache) {
+        const cache = await loadPersistentCache(projectPath);
+        if (cache && cache.packageJsonHash === currentHash && cache.configHash === currentConfigHash) {
+            // Check if cache is not too old (24 hours)
+            const cacheTime = new Date(cache.timestamp).getTime();
+            const now = Date.now();
+            if (now - cacheTime < 86400000) { // 24 hours
+                return cache.result;
+            }
+        }
+    }
+
+    // Perform detection using sync function
+    const result = detectProject(projectPath, { ...options, useCache: false });
+
+    // Save to persistent cache
+    if (useCache) {
+        await savePersistentCache(projectPath, {
+            packageJsonHash: currentHash,
+            configHash: currentConfigHash,
+            timestamp: new Date().toISOString(),
+            result,
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Async file discovery using fast-glob
+ * Returns list of matching files respecting common ignores
+ */
+export async function discoverFilesAsync(
+    projectPath: string,
+    patterns: string[],
+    options: { maxDepth?: number; ignore?: string[] } = {}
+): Promise<string[]> {
+    const maxDepth = options.maxDepth ?? 5;
+    const ignore = options.ignore ?? ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'];
+
+    const files = await fg(patterns, {
+        cwd: projectPath,
+        absolute: true,
+        deep: maxDepth,
+        ignore,
+        dot: false,
+        onlyFiles: true,
+    });
+
+    return files;
+}
+
+/**
+ * Invalidate the persistent cache
+ */
+export async function invalidatePersistentCache(projectPath: string): Promise<void> {
+    const cachePath = join(projectPath, '.never', 'cache.json');
+    try {
+        await fsPromises.unlink(cachePath);
+    } catch {
+        // Cache file does not exist, nothing to do
+    }
+}

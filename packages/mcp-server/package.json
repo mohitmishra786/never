@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-mcp-server",
-    "version": "0.0.9",
+    "version": "1.0.1",
     "description": "MCP Server for the Never Constraint Engine",
     "type": "module",
     "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^0.6.0",
-        "@mohitmishra7/never-core": "0.0.9",
+        "@mohitmishra7/never-core": "1.0.1",
         "gray-matter": "^4.0.3",
         "minimatch": "^9.0.5"
     },
