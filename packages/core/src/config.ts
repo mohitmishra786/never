@@ -31,6 +31,7 @@ export interface NeverConfig {
     targets: {
         cursor: boolean;
         claude: boolean;
+        copilot: boolean;
         agents: boolean;
     };
     autoDetect: boolean;
@@ -64,19 +65,19 @@ export function getLibraryPath(bundledPath?: string): string {
     if (existsSync(userLibrary)) {
         return userLibrary;
     }
-    
+
     // Fall back to bundled library (ships with npm package)
     if (bundledPath && existsSync(bundledPath)) {
         return bundledPath;
     }
-    
+
     // Try to find bundled library relative to this file
     // In production: node_modules/@mohitmishra7/never-core/dist/bundled-library
     const bundledRelative = join(currentDirname, 'bundled-library');
     if (existsSync(bundledRelative)) {
         return bundledRelative;
     }
-    
+
     // Last resort: return user library path (even if it doesn't exist)
     // This allows library sync to know where to download files
     return userLibrary;

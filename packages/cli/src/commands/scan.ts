@@ -11,7 +11,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
-import { detectProject, suggestRuleSets, generateStackSummary, type ProjectInfo, type StackInfo, type ScanResult } from '@mohitmishra7/never-core';
+import { detectProject, detectEnvironment, suggestRuleSets, generateStackSummary, type ProjectInfo, type StackInfo, type ScanResult, type EnvironmentInfo } from '@mohitmishra7/never-core';
 
 interface ScanOptions {
     json?: boolean;
@@ -29,6 +29,12 @@ interface StackReport {
         filesystem: FilesystemStage;
         manifest: ManifestStage;
         source: SourceStage;
+    };
+    targets: {
+        cursor: boolean;
+        copilot: boolean;
+        claude: boolean;
+        warnings: string[];
     };
     summary: {
         languages: string[];
@@ -491,6 +497,9 @@ export function generateStackReport(projectPath: string): StackReport {
         }
     }
 
+    // Detect AI coding environments
+    const envInfo = detectEnvironment(projectPath);
+
     return {
         version: '1.0',
         timestamp: new Date().toISOString(),
@@ -500,8 +509,8 @@ export function generateStackReport(projectPath: string): StackReport {
                 configFiles,
                 hasGitignore: existsSync(join(projectPath, '.gitignore')),
                 hasTsConfig: existsSync(join(projectPath, 'tsconfig.json')),
-                hasTailwind: existsSync(join(projectPath, 'tailwind.config.js')) || 
-                             existsSync(join(projectPath, 'tailwind.config.ts')),
+                hasTailwind: existsSync(join(projectPath, 'tailwind.config.js')) ||
+                    existsSync(join(projectPath, 'tailwind.config.ts')),
                 hasDocker: existsSync(join(projectPath, 'Dockerfile')),
                 hasCI: existsSync(join(projectPath, '.github', 'workflows')),
             },
@@ -513,6 +522,12 @@ export function generateStackReport(projectPath: string): StackReport {
                 requirementsTxt: existsSync(join(projectPath, 'requirements.txt')),
             },
             source: sourceStage,
+        },
+        targets: {
+            cursor: envInfo.cursor,
+            copilot: envInfo.copilot,
+            claude: envInfo.claude,
+            warnings: envInfo.warnings,
         },
         summary: {
             languages,
@@ -550,7 +565,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
         console.log();
     }
 
-    console.log(chalk.blue('📋 Detected Languages:'));
+    console.log(chalk.blue('Detected Languages:'));
     if (result.languages.length > 0) {
         for (const lang of result.languages) {
             console.log(`   ${chalk.green('•')} ${lang}`);
@@ -570,7 +585,7 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
     }
 
     console.log();
-    console.log(chalk.blue('🛠️  Detected Tools:'));
+    console.log(chalk.blue('Detected Tools:'));
     if (result.tools.length > 0) {
         for (const tool of result.tools) {
             console.log(`   ${chalk.green('•')} ${tool}`);
@@ -579,8 +594,30 @@ export async function scanCommand(options: ScanOptions): Promise<void> {
         console.log(chalk.gray('   No tools detected'));
     }
 
+    // Display detected AI environments
+    const envInfo = detectEnvironment(projectPath);
+    const detectedTargets: string[] = [];
+    if (envInfo.cursor) detectedTargets.push('Cursor');
+    if (envInfo.copilot) detectedTargets.push('GitHub Copilot');
+    if (envInfo.claude) detectedTargets.push('Claude Code');
+
     console.log();
-    console.log(chalk.bold.yellow('📦 Recommended Rule Packs:'));
+    console.log(chalk.blue('Detected AI Environments:'));
+    if (detectedTargets.length > 0) {
+        for (const target of detectedTargets) {
+            console.log(`   ${chalk.green('•')} ${target}`);
+        }
+        if (envInfo.warnings.length > 0) {
+            for (const warning of envInfo.warnings) {
+                console.log(chalk.yellow(`   ${warning}`));
+            }
+        }
+    } else {
+        console.log(chalk.gray('   No specific AI environment detected'));
+    }
+
+    console.log();
+    console.log(chalk.bold.yellow('Recommended Rule Packs:'));
     for (const pack of result.recommendedPacks) {
         console.log(`   ${chalk.cyan('→')} ${pack}`);
     }

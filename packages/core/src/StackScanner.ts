@@ -67,6 +67,214 @@ export interface StackInfo {
 }
 
 /**
+ * Environment detection result for AI agent targets
+ */
+export interface EnvironmentInfo {
+    /** Cursor IDE detected: .cursor/ OR .cursorrules OR TERM_PROGRAM=cursor */
+    cursor: boolean;
+    /** GitHub Copilot detected: .github/copilot-instructions.md OR .github/ exists AND not in Cursor */
+    copilot: boolean;
+    /** Claude Code detected: CLAUDE.md OR .claude/ directory */
+    claude: boolean;
+    /** Warnings about detected environment (e.g., multiple IDEs) */
+    warnings: string[];
+    /** Details about what triggered each detection */
+    detectionDetails: {
+        cursorReason?: string;
+        copilotReason?: string;
+        claudeReason?: string;
+    };
+}
+
+/**
+ * Detect AI coding environment with high precision
+ * This is the "Detective Engine" for determining which IDE/agent is being used
+ */
+export function detectEnvironment(projectPath: string = process.cwd()): EnvironmentInfo {
+    const info: EnvironmentInfo = {
+        cursor: false,
+        copilot: false,
+        claude: false,
+        warnings: [],
+        detectionDetails: {},
+    };
+
+    // === CURSOR DETECTION ===
+    // Priority 1: Environment variable (most reliable in-IDE indicator)
+    if (process.env.TERM_PROGRAM === 'cursor') {
+        info.cursor = true;
+        info.detectionDetails.cursorReason = 'TERM_PROGRAM=cursor environment variable';
+    }
+    // Priority 2: .cursor directory exists
+    else if (existsSync(join(projectPath, '.cursor'))) {
+        info.cursor = true;
+        info.detectionDetails.cursorReason = '.cursor/ directory exists';
+    }
+    // Priority 3: .cursorrules file exists
+    else if (existsSync(join(projectPath, '.cursorrules'))) {
+        info.cursor = true;
+        info.detectionDetails.cursorReason = '.cursorrules file exists';
+    }
+
+    // === CLAUDE CODE DETECTION ===
+    // Check for Claude-specific files/directories
+    if (existsSync(join(projectPath, 'CLAUDE.md'))) {
+        info.claude = true;
+        info.detectionDetails.claudeReason = 'CLAUDE.md file exists';
+    } else if (existsSync(join(projectPath, '.claude'))) {
+        info.claude = true;
+        info.detectionDetails.claudeReason = '.claude/ directory exists';
+    }
+    // Also check Claude Code environment variables (common patterns)
+    if (process.env.CLAUDE_CODE === '1' || process.env.ANTHROPIC_API_KEY) {
+        if (!info.claude) {
+            info.claude = true;
+            info.detectionDetails.claudeReason = 'Claude Code environment variables detected';
+        }
+    }
+
+    // === COPILOT DETECTION ===
+    // Check for GitHub Copilot instruction file
+    const copilotInstructionsPath = join(projectPath, '.github', 'copilot-instructions.md');
+    if (existsSync(copilotInstructionsPath)) {
+        info.copilot = true;
+        info.detectionDetails.copilotReason = '.github/copilot-instructions.md exists';
+    }
+    // If .github directory exists but we're not in Cursor, suggest Copilot
+    else if (existsSync(join(projectPath, '.github')) && !info.cursor) {
+        info.copilot = true;
+        info.detectionDetails.copilotReason = '.github/ directory exists (Copilot likely)';
+    }
+    // Also check .vscode directory as Copilot hint (only if cursor is false)
+    else if (existsSync(join(projectPath, '.vscode')) && !info.cursor) {
+        info.copilot = true;
+        info.detectionDetails.copilotReason = '.vscode/ directory exists (VS Code/Copilot likely)';
+    }
+
+    // === CONFLICT RESOLUTION ===
+    // If both Cursor and Copilot markers found, warn the user
+    if (info.cursor && info.copilot) {
+        info.warnings.push(
+            'Detected both Cursor and Copilot environments. Rules will be synced to both.'
+        );
+    }
+
+    // If running in Cursor but .github exists, should we sync to Copilot too?
+    if (info.cursor && existsSync(join(projectPath, '.github'))) {
+        const hasExplicitCopilotFile = existsSync(copilotInstructionsPath);
+        if (hasExplicitCopilotFile) {
+            info.copilot = true;
+            if (!info.warnings.some(w => w.includes('Cursor and Copilot'))) {
+                info.warnings.push(
+                    'Detected both Cursor and Copilot environments. Rules will be synced to both.'
+                );
+            }
+        }
+    }
+
+    return info;
+}
+
+/**
+ * Auto-suggest rule packs based on detected dependencies (Smart Scan)
+ * Maps project dependencies to recommended rule pack paths
+ */
+export interface RulePackSuggestion {
+    packPath: string;
+    reason: string;
+    confidence: 'high' | 'medium' | 'low';
+}
+
+export function suggestRulePacksFromDeps(projectPath: string = process.cwd()): RulePackSuggestion[] {
+    const suggestions: RulePackSuggestion[] = [];
+    const packageJsonPath = join(projectPath, 'package.json');
+
+    // Always suggest core rules
+    suggestions.push({
+        packPath: 'core',
+        reason: 'Core rules always recommended',
+        confidence: 'high',
+    });
+
+    // Check package.json for Node.js projects
+    if (existsSync(packageJsonPath)) {
+        try {
+            const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+            const allDeps = {
+                ...packageJson.dependencies,
+                ...packageJson.devDependencies,
+            };
+
+            // Next.js detection
+            if (allDeps['next']) {
+                suggestions.push({
+                    packPath: 'stacks/nextjs',
+                    reason: 'next package detected in dependencies',
+                    confidence: 'high',
+                });
+            }
+
+            // Tailwind detection
+            if (allDeps['tailwindcss']) {
+                suggestions.push({
+                    packPath: 'frontend/tailwind',
+                    reason: 'tailwindcss package detected',
+                    confidence: 'high',
+                });
+            }
+
+            // React detection
+            if (allDeps['react']) {
+                suggestions.push({
+                    packPath: 'stacks/react',
+                    reason: 'react package detected',
+                    confidence: 'high',
+                });
+            }
+
+            // TypeScript detection
+            if (allDeps['typescript']) {
+                suggestions.push({
+                    packPath: 'languages/typescript',
+                    reason: 'typescript package detected',
+                    confidence: 'high',
+                });
+            }
+        } catch {
+            // Ignore parse errors
+        }
+    }
+
+    // Python detection
+    if (
+        existsSync(join(projectPath, 'requirements.txt')) ||
+        existsSync(join(projectPath, 'pyproject.toml')) ||
+        existsSync(join(projectPath, 'setup.py'))
+    ) {
+        suggestions.push({
+            packPath: 'languages/python',
+            reason: 'Python project files detected',
+            confidence: 'high',
+        });
+    }
+
+    // Docker detection
+    if (
+        existsSync(join(projectPath, 'docker-compose.yml')) ||
+        existsSync(join(projectPath, 'docker-compose.yaml')) ||
+        existsSync(join(projectPath, 'Dockerfile'))
+    ) {
+        suggestions.push({
+            packPath: 'devops/docker',
+            reason: 'Docker configuration files detected',
+            confidence: 'high',
+        });
+    }
+
+    return suggestions;
+}
+
+/**
  * Load .gitignore patterns using the ignore package
  */
 function loadGitignore(projectPath: string): Ignore {
@@ -232,7 +440,7 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
                 info.hasReact = true;
                 info.frameworks.push('react');
                 info.stacks.push({ name: 'React', type: 'framework', ruleCount: 18 });
-                
+
                 // Check for Next.js specifically
                 if (allDeps['next']) {
                     info.frameworks.push('nextjs');
@@ -339,7 +547,7 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
     }
 
     // Check for Docker (root level files)
-    if (existsSync(join(projectPath, 'Dockerfile')) || 
+    if (existsSync(join(projectPath, 'Dockerfile')) ||
         existsSync(join(projectPath, 'docker-compose.yml')) ||
         existsSync(join(projectPath, 'docker-compose.yaml'))) {
         info.hasDocker = true;
@@ -347,7 +555,7 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
     }
 
     // Enhanced: Check for Kubernetes
-    if (existsSync(join(projectPath, 'k8s')) || 
+    if (existsSync(join(projectPath, 'k8s')) ||
         existsSync(join(projectPath, 'kubernetes')) ||
         existsSync(join(projectPath, 'deployment.yaml'))) {
         info.frameworks.push('kubernetes');
@@ -355,7 +563,7 @@ export function detectProject(projectPath: string = process.cwd(), options: Dete
     }
 
     // Enhanced: Check for Terraform/IaC
-    if (existsSync(join(projectPath, 'main.tf')) || 
+    if (existsSync(join(projectPath, 'main.tf')) ||
         existsSync(join(projectPath, 'terraform'))) {
         info.frameworks.push('terraform');
         info.stacks.push({ name: 'Infrastructure as Code', type: 'tool', ruleCount: 6 });

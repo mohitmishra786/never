@@ -335,6 +335,51 @@ export class SyncEngine {
     }
 
     /**
+     * Sync rules to GitHub Copilot via .github/copilot-instructions.md
+     */
+    syncToCopilot(rules: ParsedRule[], options: SyncOptions = {}): SyncResult {
+        const githubDir = join(this.projectPath, '.github');
+        const copilotPath = join(githubDir, 'copilot-instructions.md');
+
+        // Ensure .github directory exists
+        if (!options.dryRun && !existsSync(githubDir)) {
+            mkdirSync(githubDir, { recursive: true });
+        }
+
+        // Check marker status
+        const markerStatus = this.checkMarkers(copilotPath);
+
+        // If file exists but lacks markers, warn or auto-append
+        if (markerStatus.needsPrompt && !options.dryRun) {
+            if (options.verbose) {
+                console.warn(`Markers not found in ${copilotPath}. They will be appended.`);
+            }
+        }
+
+        const newContent = generateClaudeContent(rules);
+
+        if (!options.dryRun) {
+            if (existsSync(copilotPath)) {
+                this.safetyManager.createBackup(copilotPath);
+            }
+
+            const existingContent = existsSync(copilotPath)
+                ? readFileSync(copilotPath, 'utf-8')
+                : '';
+            const updated = replaceMarkerSection(existingContent, newContent);
+            this.safetyManager.atomicWrite(copilotPath, updated);
+        }
+
+        return {
+            target: 'copilot',
+            path: copilotPath,
+            ruleCount: rules.reduce((sum, r) => sum + r.rules.length, 0),
+            skipped: 0,
+            success: true,
+        };
+    }
+
+    /**
      * Sync all targets based on config
      */
     syncAll(options: SyncOptions = {}): SyncResult[] {
@@ -345,6 +390,10 @@ export class SyncEngine {
 
         if (!config || config.targets.claude) {
             results.push(this.syncToClaude(rules, options));
+        }
+
+        if (config?.targets.copilot) {
+            results.push(this.syncToCopilot(rules, options));
         }
 
         if (config?.targets.agents) {
