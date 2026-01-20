@@ -1,6 +1,6 @@
 {
     "name": "@mohitmishra7/never-mcp-server",
-    "version": "0.0.9",
+    "version": "1.0.0",
     "description": "MCP Server for the Never Constraint Engine",
     "type": "module",
     "main": "./dist/index.js",

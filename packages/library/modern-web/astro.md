@@ -52,7 +52,7 @@ alwaysApply: false
 
 - **Never** import unused framework adapters
 - **Never** bundle large libraries without code splitting
-- **Always** use image optimization with `@astrojs/image` or native `<Image />`
+- **Always** use image optimization with `astro:assets` and native `<Image />` component (Astro v3+)
 - **Always** prefetch critical pages with `<link rel="prefetch">`
 - **Always** analyze bundle size with `astro build --analyze`
 

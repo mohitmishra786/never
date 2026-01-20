@@ -659,6 +659,8 @@ import fg from 'fast-glob';
  */
 interface PersistentCache {
     packageJsonHash: string;
+    /** Config hash from getConfigHash() to detect changes in tsconfig, requirements.txt, etc. */
+    configHash: string;
     timestamp: string;
     result: ProjectInfo;
 }
@@ -699,18 +701,18 @@ async function savePersistentCache(projectPath: string, cache: PersistentCache):
 
 /**
  * Async project detection using fast-glob with persistent caching
- * Uses MD5 hash of package.json to determine if cache is still valid
+ * Uses MD5 hash of package.json and config hash to determine if cache is still valid
  */
 export async function detectProjectAsync(
     projectPath: string = process.cwd(),
     options: DetectOptions = {}
 ): Promise<ProjectInfo> {
     const useCache = options.useCache ?? true;
-    
+
     // Calculate current package.json hash
     const packageJsonPath = join(projectPath, 'package.json');
     let currentHash = '';
-    
+
     try {
         const packageJsonContent = await fsPromises.readFile(packageJsonPath, 'utf-8');
         currentHash = calculateMD5Hash(packageJsonContent);
@@ -718,11 +720,14 @@ export async function detectProjectAsync(
         // No package.json, use mtime-based hash
         currentHash = getConfigHash(projectPath);
     }
-    
+
+    // Calculate config hash for other config files (tsconfig, requirements.txt, etc.)
+    const currentConfigHash = getConfigHash(projectPath);
+
     // Check persistent cache
     if (useCache) {
         const cache = await loadPersistentCache(projectPath);
-        if (cache && cache.packageJsonHash === currentHash) {
+        if (cache && cache.packageJsonHash === currentHash && cache.configHash === currentConfigHash) {
             // Check if cache is not too old (24 hours)
             const cacheTime = new Date(cache.timestamp).getTime();
             const now = Date.now();
@@ -731,19 +736,20 @@ export async function detectProjectAsync(
             }
         }
     }
-    
+
     // Perform detection using sync function
     const result = detectProject(projectPath, { ...options, useCache: false });
-    
+
     // Save to persistent cache
     if (useCache) {
         await savePersistentCache(projectPath, {
             packageJsonHash: currentHash,
+            configHash: currentConfigHash,
             timestamp: new Date().toISOString(),
             result,
         });
     }
-    
+
     return result;
 }
 
@@ -758,7 +764,7 @@ export async function discoverFilesAsync(
 ): Promise<string[]> {
     const maxDepth = options.maxDepth ?? 5;
     const ignore = options.ignore ?? ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'];
-    
+
     const files = await fg(patterns, {
         cwd: projectPath,
         absolute: true,
@@ -767,7 +773,7 @@ export async function discoverFilesAsync(
         dot: false,
         onlyFiles: true,
     });
-    
+
     return files;
 }
 
