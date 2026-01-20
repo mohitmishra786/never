@@ -16,7 +16,7 @@ import { scanCommand } from './commands/scan.js';
 import { lintCommand } from './commands/lint.js';
 import { doctorCommand } from './commands/doctor.js';
 
-const CLI_VERSION = '0.0.9';
+const CLI_VERSION = '1.0.2';
 
 // Get __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
