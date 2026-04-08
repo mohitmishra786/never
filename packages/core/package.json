@@ -24,7 +24,7 @@
         "fast-glob": "^3.3.3",
         "gray-matter": "^4.0.3",
         "ignore": "^6.0.2",
-        "minimatch": "^9.0.5",
+        "minimatch": "^10.2.2",
         "safe-regex2": "^5.0.0",
         "yaml": "^2.6.1",
         "zod": "^3.23.8"
